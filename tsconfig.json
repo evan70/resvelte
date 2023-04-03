@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ES2021",
+    "moduleResolution": "node",
+    "strict": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "lib": [
+      "ES2021",
+      "dom"
+    ],
+    "types": [
+      "vite/client"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "resources/*"
+      ]
+    }
+  },
+  "include": [
+    "resources/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
