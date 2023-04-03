@@ -35,7 +35,7 @@ export default defineConfig({
                     "php",
                     "artisan",
                     "ziggy:generate",
-                    "./resources/generated/ziggy-routes.js",
+                    "./resources/ts/generated/ziggy-routes.js",
                 ],
                 condition: (file) =>
                     file.includes("/routes/") && file.endsWith(".php"),
@@ -59,8 +59,8 @@ export default defineConfig({
                     "@inertiajs/svelte": ["inertia", "useForm", "router"],
                 },
             ],
-            dirs: ["resources/helpers/**", "resources/actions/**"],
-            dts: "./resources/generated/auto-imports.d.ts",
+            dirs: ["resources/ts/helpers/**", "resources/actions/**"],
+            dts: "./resources/ts/generated/auto-imports.d.ts",
         }),
         visualizer({
             filename: './storage/bundle-analyzer.html',

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4114f9febd2fd1e48fca66a8284fdef6",
+    "content-hash": "f48250406b34ba466b394b48abee56b6",
     "packages": [
         {
             "name": "brick/math",
@@ -9486,6 +9486,67 @@
                 "source": "https://github.com/ta-tikoma/phpunit-architecture-test/tree/0.7.2"
             },
             "time": "2023-03-24T11:15:54+00:00"
+        },
+        {
+            "name": "tapansharma/breeze-svelte",
+            "version": "v1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/tapan288/breeze-svelte.git",
+                "reference": "cf332a8fca59854f120ccd5c447553d7c9dff415"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/tapan288/breeze-svelte/zipball/cf332a8fca59854f120ccd5c447553d7c9dff415",
+                "reference": "cf332a8fca59854f120ccd5c447553d7c9dff415",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/console": "^9.21|^10.0",
+                "illuminate/filesystem": "^9.21|^10.0",
+                "illuminate/support": "^9.21|^10.0",
+                "illuminate/validation": "^9.21|^10.0",
+                "php": "^8.0.2"
+            },
+            "conflict": {
+                "laravel/framework": "<9.37.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.x-dev"
+                },
+                "laravel": {
+                    "providers": [
+                        "Laravel\\Breeze\\BreezeServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Laravel\\Breeze\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Taylor Otwell",
+                    "email": "taylor@laravel.com"
+                }
+            ],
+            "description": "Minimal Laravel authentication scaffolding with Svelte and Tailwind.",
+            "keywords": [
+                "auth",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/tapan288/breeze-svelte/issues",
+                "source": "https://github.com/tapan288/breeze-svelte"
+            },
+            "time": "2023-02-14T07:00:58+00:00"
         },
         {
             "name": "theseer/tokenizer",
