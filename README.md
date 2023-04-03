@@ -1,4 +1,4 @@
-# laravel-svelte-base"
+# laravel-svelte-TS 
 
 Basic Svelte + Inertiajs + Laravel template
 
