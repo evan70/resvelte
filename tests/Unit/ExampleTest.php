@@ -1,5 +1,6 @@
 <?php
 
-test('that true is true', function () {
-    expect(true)->toBeTrue();
-});
+    it('should return a successful response', function () {
+        $response = $this->get('/');
+        $response->assertStatus(200);
+    });

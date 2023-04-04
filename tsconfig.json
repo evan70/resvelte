@@ -17,12 +17,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "resources/*"
+        "resources/ts/*"
       ]
     }
   },
   "include": [
-    "resources/**/*"
+    "resources/ts/**/*"
   ],
   "exclude": [
     "node_modules"

@@ -17,14 +17,14 @@ let host = "localhost:8000";
 export default defineConfig({
     plugins: [
         laravel.default({
-            input: ["resources/app.ts"],
+            input: ["resources/ts/app.ts"],
             refresh: true,
         }),
 
         svelte({
-            experimental: {
-                useVitePreprocess: true,
-            },
+            // experimental: {
+            //     useVitePreprocess: true,
+            // },
         }),
         Unocss(),
         // regenerate ziggy routes when any of the files in the routes folder changes
@@ -59,7 +59,7 @@ export default defineConfig({
                     "@inertiajs/svelte": ["inertia", "useForm", "router"],
                 },
             ],
-            dirs: ["resources/ts/helpers/**", "resources/actions/**"],
+            dirs: ["resources/ts/helpers/**", "resources/ts/actions/**"],
             dts: "./resources/ts/generated/auto-imports.d.ts",
         }),
         visualizer({
@@ -76,7 +76,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            "@": resolve(projectRootDir, "resources"),
+            "@": resolve(projectRootDir, "resources/ts"),
         },
     },
     server: detectServerConfig(host),

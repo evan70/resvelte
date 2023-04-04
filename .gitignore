@@ -1,9 +1,11 @@
-/.phpunit.cache
 /node_modules
+/resources/ts/generated
 /public/build
 /public/hot
 /public/storage
 /storage/*.key
+/storage/logs
+/storage/framework
 /vendor
 .env
 .env.backup
@@ -14,6 +16,8 @@ Homestead.yaml
 auth.json
 npm-debug.log
 yarn-error.log
+pnpm-lock.yaml
+composer.lock
 /.fleet
 /.idea
 /.vscode
