@@ -19,7 +19,7 @@
 
 <Guest>
   {#if status}
-    <div class='mb-4 p-3 mt-3 font-medium text-sm text-green-600 bg-green-300/20 rounded '>
+    <div class='mb-4 font-medium text-sm text-green-600'>
       {status}
     </div>
   {/if}
