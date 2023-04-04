@@ -5,12 +5,12 @@ import "@unocss/reset/tailwind.css";
 import "uno.css";
 import "./assets/css/app.scss";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
-import Authenticated from "@/ts/layouts/Authenticated.svelte";
+import Authenticated from "@/layouts/Authenticated.svelte";
 import axios from "axios";
 
 const defaultLayout = Authenticated;
 const pagesWithoutDefaultLayout = [
-    ...getPages(import.meta.glob("./ts/pages/Auth/**/*.svelte")),
+    ...getPages(import.meta.glob("./pages/Auth/**/*.svelte")),
     "Welcome",
 ];
 
@@ -26,8 +26,8 @@ createInertiaApp({
 async function resolve(name: string) {
     let component;
     const page = resolvePageComponent(
-        `./ts/pages/${name}.svelte`,
-        import.meta.glob("./ts/pages/**/*.svelte")
+        `./pages/${name}.svelte`,
+        import.meta.glob("./pages/**/*.svelte")
     );
     await page.then((module) => {
         component = pagesWithoutDefaultLayout.includes(name)
@@ -39,7 +39,7 @@ async function resolve(name: string) {
 
 function getPages(pages: Record<string, () => Promise<unknown>>) {
     return Object.keys(pages).map((page) =>
-        page.replace("./ts/pages/", "").replace(".svelte", "")
+        page.replace("./pages/", "").replace(".svelte", "")
     );
 }
 

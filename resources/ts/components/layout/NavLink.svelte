@@ -1,4 +1,4 @@
-<script lang='ts'>
+<script>
   import { inertia } from '@inertiajs/svelte'
   import clsx from 'clsx'
 
