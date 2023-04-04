@@ -28,11 +28,8 @@ export default defineConfig({
         ],
         [
             /^btn-outline-(.*)$/,
-            ([
-                ,
-                c,
-            ]) => `border border-${c}-500 text-${c}-500 hover:bg-${c}-500 hover:text-white  dark:(border-${c}-500 hover:bg-${c}-500) 
-            [&_.btn-spinner]:border-${c}-400 `,
+            ([, c]) =>
+                `border border-${c}-500 text-${c}-500 hover:bg-${c}-500 hover:text-white dark:(border-${c}-500 hover:bg-${c}-500) [&_.btn-spinner]:border-${c}-400 `,
         ],
         [
             /^btn-light-(.*)$/,
