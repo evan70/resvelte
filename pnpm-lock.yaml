@@ -45,6 +45,9 @@ devDependencies:
   '@unocss/core':
     specifier: ^0.50.6
     version: 0.50.6
+  '@unocss/preset-mini':
+    specifier: ^0.50.6
+    version: 0.50.6
   '@unocss/reset':
     specifier: ^0.50.6
     version: 0.50.6
