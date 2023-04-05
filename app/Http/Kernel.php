@@ -60,8 +60,8 @@ namespace App\Http;
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
-                HandleInertiaRequests::class,
                 AddLinkHeadersForPreloadedAssets::class,
+                HandleInertiaRequests::class,
             ],
 
             'api' => [

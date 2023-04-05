@@ -18,6 +18,7 @@ export default defineConfig({
     plugins: [
         laravel.default({
             input: ["resources/ts/app.ts"],
+            ssr: 'resources/ts/ssr.ts',
             refresh: true,
         }),
 

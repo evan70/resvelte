@@ -1,28 +1,390 @@
-import B from "axios";
 import require$$0 from "util";
+import B from "axios";
+import clsx$1, { clsx } from "clsx";
 import ZiggyRoute from "ziggy-js";
-import clsx, { clsx as clsx$1 } from "clsx";
-var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
-var isMergeableObject = function isMergeableObject2(value) {
-  return isNonNullObject(value) && !isSpecial(value);
-};
-function isNonNullObject(value) {
-  return !!value && typeof value === "object";
+import { createServer } from "http";
+import * as s from "process";
+function noop() {
 }
-function isSpecial(value) {
-  var stringValue = Object.prototype.toString.call(value);
-  return stringValue === "[object RegExp]" || stringValue === "[object Date]" || isReactElement(value);
+function run(fn) {
+  return fn();
+}
+function blank_object() {
+  return /* @__PURE__ */ Object.create(null);
+}
+function run_all(fns) {
+  fns.forEach(run);
+}
+function is_function(thing) {
+  return typeof thing === "function";
+}
+function safe_not_equal(a, b) {
+  return a != a ? b == b : a !== b || (a && typeof a === "object" || typeof a === "function");
+}
+function subscribe(store2, ...callbacks) {
+  if (store2 == null) {
+    return noop;
+  }
+  const unsub = store2.subscribe(...callbacks);
+  return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+}
+function compute_rest_props(props, keys) {
+  const rest = {};
+  keys = new Set(keys);
+  for (const k2 in props)
+    if (!keys.has(k2) && k2[0] !== "$")
+      rest[k2] = props[k2];
+  return rest;
+}
+function compute_slots(slots) {
+  const result = {};
+  for (const key in slots) {
+    result[key] = true;
+  }
+  return result;
+}
+function listen(node, event, handler, options) {
+  node.addEventListener(event, handler, options);
+  return () => node.removeEventListener(event, handler, options);
+}
+function prevent_default(fn) {
+  return function(event) {
+    event.preventDefault();
+    return fn.call(this, event);
+  };
+}
+function stop_propagation(fn) {
+  return function(event) {
+    event.stopPropagation();
+    return fn.call(this, event);
+  };
+}
+function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
+  const e = document.createEvent("CustomEvent");
+  e.initCustomEvent(type, bubbles, cancelable, detail);
+  return e;
+}
+let current_component;
+function set_current_component(component) {
+  current_component = component;
+}
+function get_current_component() {
+  if (!current_component)
+    throw new Error("Function called outside component initialization");
+  return current_component;
+}
+function onDestroy(fn) {
+  get_current_component().$$.on_destroy.push(fn);
+}
+function createEventDispatcher() {
+  const component = get_current_component();
+  return (type, detail, { cancelable = false } = {}) => {
+    const callbacks = component.$$.callbacks[type];
+    if (callbacks) {
+      const event = custom_event(type, detail, { cancelable });
+      callbacks.slice().forEach((fn) => {
+        fn.call(component, event);
+      });
+      return !event.defaultPrevented;
+    }
+    return true;
+  };
+}
+function setContext(key, context) {
+  get_current_component().$$.context.set(key, context);
+  return context;
+}
+function getContext(key) {
+  return get_current_component().$$.context.get(key);
+}
+function bubble(component, event) {
+  const callbacks = component.$$.callbacks[event.type];
+  if (callbacks) {
+    callbacks.slice().forEach((fn) => fn.call(this, event));
+  }
+}
+const dirty_components = [];
+const binding_callbacks = [];
+let render_callbacks = [];
+const flush_callbacks = [];
+const resolved_promise = /* @__PURE__ */ Promise.resolve();
+let update_scheduled = false;
+function schedule_update() {
+  if (!update_scheduled) {
+    update_scheduled = true;
+    resolved_promise.then(flush);
+  }
+}
+function tick() {
+  schedule_update();
+  return resolved_promise;
+}
+function add_render_callback(fn) {
+  render_callbacks.push(fn);
+}
+const seen_callbacks = /* @__PURE__ */ new Set();
+let flushidx = 0;
+function flush() {
+  if (flushidx !== 0) {
+    return;
+  }
+  const saved_component = current_component;
+  do {
+    try {
+      while (flushidx < dirty_components.length) {
+        const component = dirty_components[flushidx];
+        flushidx++;
+        set_current_component(component);
+        update(component.$$);
+      }
+    } catch (e) {
+      dirty_components.length = 0;
+      flushidx = 0;
+      throw e;
+    }
+    set_current_component(null);
+    dirty_components.length = 0;
+    flushidx = 0;
+    while (binding_callbacks.length)
+      binding_callbacks.pop()();
+    for (let i = 0; i < render_callbacks.length; i += 1) {
+      const callback = render_callbacks[i];
+      if (!seen_callbacks.has(callback)) {
+        seen_callbacks.add(callback);
+        callback();
+      }
+    }
+    render_callbacks.length = 0;
+  } while (dirty_components.length);
+  while (flush_callbacks.length) {
+    flush_callbacks.pop()();
+  }
+  update_scheduled = false;
+  seen_callbacks.clear();
+  set_current_component(saved_component);
+}
+function update($$) {
+  if ($$.fragment !== null) {
+    $$.update();
+    run_all($$.before_update);
+    const dirty = $$.dirty;
+    $$.dirty = [-1];
+    $$.fragment && $$.fragment.p($$.ctx, dirty);
+    $$.after_update.forEach(add_render_callback);
+  }
+}
+const _boolean_attributes = [
+  "allowfullscreen",
+  "allowpaymentrequest",
+  "async",
+  "autofocus",
+  "autoplay",
+  "checked",
+  "controls",
+  "default",
+  "defer",
+  "disabled",
+  "formnovalidate",
+  "hidden",
+  "inert",
+  "ismap",
+  "loop",
+  "multiple",
+  "muted",
+  "nomodule",
+  "novalidate",
+  "open",
+  "playsinline",
+  "readonly",
+  "required",
+  "reversed",
+  "selected"
+];
+const boolean_attributes = /* @__PURE__ */ new Set([..._boolean_attributes]);
+const void_element_names = /^(?:area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)$/;
+function is_void(name) {
+  return void_element_names.test(name) || name.toLowerCase() === "!doctype";
+}
+const invalid_attribute_name_character = /[\s'">/=\u{FDD0}-\u{FDEF}\u{FFFE}\u{FFFF}\u{1FFFE}\u{1FFFF}\u{2FFFE}\u{2FFFF}\u{3FFFE}\u{3FFFF}\u{4FFFE}\u{4FFFF}\u{5FFFE}\u{5FFFF}\u{6FFFE}\u{6FFFF}\u{7FFFE}\u{7FFFF}\u{8FFFE}\u{8FFFF}\u{9FFFE}\u{9FFFF}\u{AFFFE}\u{AFFFF}\u{BFFFE}\u{BFFFF}\u{CFFFE}\u{CFFFF}\u{DFFFE}\u{DFFFF}\u{EFFFE}\u{EFFFF}\u{FFFFE}\u{FFFFF}\u{10FFFE}\u{10FFFF}]/u;
+function spread(args, attrs_to_add) {
+  const attributes = Object.assign({}, ...args);
+  if (attrs_to_add) {
+    const classes_to_add = attrs_to_add.classes;
+    const styles_to_add = attrs_to_add.styles;
+    if (classes_to_add) {
+      if (attributes.class == null) {
+        attributes.class = classes_to_add;
+      } else {
+        attributes.class += " " + classes_to_add;
+      }
+    }
+    if (styles_to_add) {
+      if (attributes.style == null) {
+        attributes.style = style_object_to_string(styles_to_add);
+      } else {
+        attributes.style = style_object_to_string(merge_ssr_styles(attributes.style, styles_to_add));
+      }
+    }
+  }
+  let str = "";
+  Object.keys(attributes).forEach((name) => {
+    if (invalid_attribute_name_character.test(name))
+      return;
+    const value2 = attributes[name];
+    if (value2 === true)
+      str += " " + name;
+    else if (boolean_attributes.has(name.toLowerCase())) {
+      if (value2)
+        str += " " + name;
+    } else if (value2 != null) {
+      str += ` ${name}="${value2}"`;
+    }
+  });
+  return str;
+}
+function merge_ssr_styles(style_attribute, style_directive) {
+  const style_object = {};
+  for (const individual_style of style_attribute.split(";")) {
+    const colon_index = individual_style.indexOf(":");
+    const name = individual_style.slice(0, colon_index).trim();
+    const value2 = individual_style.slice(colon_index + 1).trim();
+    if (!name)
+      continue;
+    style_object[name] = value2;
+  }
+  for (const name in style_directive) {
+    const value2 = style_directive[name];
+    if (value2) {
+      style_object[name] = value2;
+    } else {
+      delete style_object[name];
+    }
+  }
+  return style_object;
+}
+const ATTR_REGEX = /[&"]/g;
+const CONTENT_REGEX = /[&<]/g;
+function escape$1(value2, is_attr = false) {
+  const str = String(value2);
+  const pattern = is_attr ? ATTR_REGEX : CONTENT_REGEX;
+  pattern.lastIndex = 0;
+  let escaped = "";
+  let last = 0;
+  while (pattern.test(str)) {
+    const i = pattern.lastIndex - 1;
+    const ch = str[i];
+    escaped += str.substring(last, i) + (ch === "&" ? "&amp;" : ch === '"' ? "&quot;" : "&lt;");
+    last = i + 1;
+  }
+  return escaped + str.substring(last);
+}
+function escape_attribute_value(value2) {
+  const should_escape = typeof value2 === "string" || value2 && typeof value2 === "object";
+  return should_escape ? escape$1(value2, true) : value2;
+}
+function escape_object(obj) {
+  const result = {};
+  for (const key in obj) {
+    result[key] = escape_attribute_value(obj[key]);
+  }
+  return result;
+}
+function each(items, fn) {
+  let str = "";
+  for (let i = 0; i < items.length; i += 1) {
+    str += fn(items[i], i);
+  }
+  return str;
+}
+const missing_component = {
+  $$render: () => ""
+};
+function validate_component(component, name) {
+  if (!component || !component.$$render) {
+    if (name === "svelte:component")
+      name += " this={...}";
+    throw new Error(`<${name}> is not a valid SSR component. You may need to review your build config to ensure that dependencies are compiled, rather than imported as pre-compiled modules. Otherwise you may need to fix a <${name}>.`);
+  }
+  return component;
+}
+let on_destroy;
+function create_ssr_component(fn) {
+  function $$render(result, props, bindings, slots, context) {
+    const parent_component = current_component;
+    const $$ = {
+      on_destroy,
+      context: new Map(context || (parent_component ? parent_component.$$.context : [])),
+      // these will be immediately discarded
+      on_mount: [],
+      before_update: [],
+      after_update: [],
+      callbacks: blank_object()
+    };
+    set_current_component({ $$ });
+    const html = fn(result, props, bindings, slots);
+    set_current_component(parent_component);
+    return html;
+  }
+  return {
+    render: (props = {}, { $$slots = {}, context = /* @__PURE__ */ new Map() } = {}) => {
+      on_destroy = [];
+      const result = { title: "", head: "", css: /* @__PURE__ */ new Set() };
+      const html = $$render(result, props, {}, $$slots, context);
+      run_all(on_destroy);
+      return {
+        html,
+        css: {
+          code: Array.from(result.css).map((css2) => css2.code).join("\n"),
+          map: null
+          // TODO
+        },
+        head: result.title + result.head
+      };
+    },
+    $$render
+  };
+}
+function add_attribute(name, value2, boolean) {
+  if (value2 == null || boolean && !value2)
+    return "";
+  const assignment = boolean && value2 === true ? "" : `="${escape$1(value2, true)}"`;
+  return ` ${name}${assignment}`;
+}
+function style_object_to_string(style_object) {
+  return Object.keys(style_object).filter((key) => style_object[key]).map((key) => `${key}: ${escape_attribute_value(style_object[key])};`).join(" ");
+}
+const ApplicationLogo = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $$restProps = compute_rest_props($$props, []);
+  return `<svg${spread(
+    [
+      escape_object($$restProps),
+      { viewBox: "0 0 316 316" },
+      { xmlns: "http://www.w3.org/2000/svg" }
+    ],
+    {}
+  )}><path d="M305.8 81.125C305.77 80.995 305.69 80.885 305.65 80.755C305.56 80.525 305.49 80.285 305.37 80.075C305.29 79.935 305.17 79.815 305.07 79.685C304.94 79.515 304.83 79.325 304.68 79.175C304.55 79.045 304.39 78.955 304.25 78.845C304.09 78.715 303.95 78.575 303.77 78.475L251.32 48.275C249.97 47.495 248.31 47.495 246.96 48.275L194.51 78.475C194.33 78.575 194.19 78.725 194.03 78.845C193.89 78.955 193.73 79.045 193.6 79.175C193.45 79.325 193.34 79.515 193.21 79.685C193.11 79.815 192.99 79.935 192.91 80.075C192.79 80.285 192.71 80.525 192.63 80.755C192.58 80.875 192.51 80.995 192.48 81.125C192.38 81.495 192.33 81.875 192.33 82.265V139.625L148.62 164.795V52.575C148.62 52.185 148.57 51.805 148.47 51.435C148.44 51.305 148.36 51.195 148.32 51.065C148.23 50.835 148.16 50.595 148.04 50.385C147.96 50.245 147.84 50.125 147.74 49.995C147.61 49.825 147.5 49.635 147.35 49.485C147.22 49.355 147.06 49.265 146.92 49.155C146.76 49.025 146.62 48.885 146.44 48.785L93.99 18.585C92.64 17.805 90.98 17.805 89.63 18.585L37.18 48.785C37 48.885 36.86 49.035 36.7 49.155C36.56 49.265 36.4 49.355 36.27 49.485C36.12 49.635 36.01 49.825 35.88 49.995C35.78 50.125 35.66 50.245 35.58 50.385C35.46 50.595 35.38 50.835 35.3 51.065C35.25 51.185 35.18 51.305 35.15 51.435C35.05 51.805 35 52.185 35 52.575V232.235C35 233.795 35.84 235.245 37.19 236.025L142.1 296.425C142.33 296.555 142.58 296.635 142.82 296.725C142.93 296.765 143.04 296.835 143.16 296.865C143.53 296.965 143.9 297.015 144.28 297.015C144.66 297.015 145.03 296.965 145.4 296.865C145.5 296.835 145.59 296.775 145.69 296.745C145.95 296.655 146.21 296.565 146.45 296.435L251.36 236.035C252.72 235.255 253.55 233.815 253.55 232.245V174.885L303.81 145.945C305.17 145.165 306 143.725 306 142.155V82.265C305.95 81.875 305.89 81.495 305.8 81.125ZM144.2 227.205L100.57 202.515L146.39 176.135L196.66 147.195L240.33 172.335L208.29 190.625L144.2 227.205ZM244.75 114.995V164.795L226.39 154.225L201.03 139.625V89.825L219.39 100.395L244.75 114.995ZM249.12 57.105L292.81 82.265L249.12 107.425L205.43 82.265L249.12 57.105ZM114.49 184.425L96.13 194.995V85.305L121.49 70.705L139.85 60.135V169.815L114.49 184.425ZM91.76 27.425L135.45 52.585L91.76 77.745L48.07 52.585L91.76 27.425ZM43.67 60.135L62.03 70.705L87.39 85.305V202.545V202.555V202.565C87.39 202.735 87.44 202.895 87.46 203.055C87.49 203.265 87.49 203.485 87.55 203.695V203.705C87.6 203.875 87.69 204.035 87.76 204.195C87.84 204.375 87.89 204.575 87.99 204.745C87.99 204.745 87.99 204.755 88 204.755C88.09 204.905 88.22 205.035 88.33 205.175C88.45 205.335 88.55 205.495 88.69 205.635L88.7 205.645C88.82 205.765 88.98 205.855 89.12 205.965C89.28 206.085 89.42 206.225 89.59 206.325C89.6 206.325 89.6 206.325 89.61 206.335C89.62 206.335 89.62 206.345 89.63 206.345L139.87 234.775V285.065L43.67 229.705V60.135ZM244.75 229.705L148.58 285.075V234.775L219.8 194.115L244.75 179.875V229.705ZM297.2 139.625L253.49 164.795V114.995L278.85 100.395L297.21 89.825V139.625H297.2Z"></path></svg>`;
+});
+var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
+var isMergeableObject = function isMergeableObject2(value2) {
+  return isNonNullObject(value2) && !isSpecial(value2);
+};
+function isNonNullObject(value2) {
+  return !!value2 && typeof value2 === "object";
+}
+function isSpecial(value2) {
+  var stringValue = Object.prototype.toString.call(value2);
+  return stringValue === "[object RegExp]" || stringValue === "[object Date]" || isReactElement(value2);
 }
 var canUseSymbol = typeof Symbol === "function" && Symbol.for;
 var REACT_ELEMENT_TYPE = canUseSymbol ? Symbol.for("react.element") : 60103;
-function isReactElement(value) {
-  return value.$$typeof === REACT_ELEMENT_TYPE;
+function isReactElement(value2) {
+  return value2.$$typeof === REACT_ELEMENT_TYPE;
 }
 function emptyTarget(val) {
   return Array.isArray(val) ? [] : {};
 }
-function cloneUnlessOtherwiseSpecified(value, options) {
-  return options.clone !== false && options.isMergeableObject(value) ? deepmerge(emptyTarget(value), value, options) : value;
+function cloneUnlessOtherwiseSpecified(value2, options) {
+  return options.clone !== false && options.isMergeableObject(value2) ? deepmerge(emptyTarget(value2), value2, options) : value2;
 }
 function defaultArrayMerge(target, source, options) {
   return target.concat(source).map(function(element) {
@@ -323,26 +685,26 @@ try {
   INTRINSICS["%Error.prototype%"] = errorProto;
 }
 var doEval = function doEval2(name) {
-  var value;
+  var value2;
   if (name === "%AsyncFunction%") {
-    value = getEvalledConstructor("async function () {}");
+    value2 = getEvalledConstructor("async function () {}");
   } else if (name === "%GeneratorFunction%") {
-    value = getEvalledConstructor("function* () {}");
+    value2 = getEvalledConstructor("function* () {}");
   } else if (name === "%AsyncGeneratorFunction%") {
-    value = getEvalledConstructor("async function* () {}");
+    value2 = getEvalledConstructor("async function* () {}");
   } else if (name === "%AsyncGenerator%") {
     var fn = doEval2("%AsyncGeneratorFunction%");
     if (fn) {
-      value = fn.prototype;
+      value2 = fn.prototype;
     }
   } else if (name === "%AsyncIteratorPrototype%") {
     var gen = doEval2("%AsyncGenerator%");
     if (gen) {
-      value = getProto(gen.prototype);
+      value2 = getProto(gen.prototype);
     }
   }
-  INTRINSICS[name] = value;
-  return value;
+  INTRINSICS[name] = value2;
+  return value2;
 };
 var LEGACY_ALIASES = {
   "%ArrayBufferPrototype%": ["ArrayBuffer", "prototype"],
@@ -428,17 +790,17 @@ var getBaseIntrinsic = function getBaseIntrinsic2(name, allowMissing) {
     intrinsicName = "%" + alias[0] + "%";
   }
   if (hasOwn$1(INTRINSICS, intrinsicName)) {
-    var value = INTRINSICS[intrinsicName];
-    if (value === needsEval) {
-      value = doEval(intrinsicName);
+    var value2 = INTRINSICS[intrinsicName];
+    if (value2 === needsEval) {
+      value2 = doEval(intrinsicName);
     }
-    if (typeof value === "undefined" && !allowMissing) {
+    if (typeof value2 === "undefined" && !allowMissing) {
       throw new $TypeError$1("intrinsic " + name + " exists, but is not available. Please file an issue!");
     }
     return {
       alias,
       name: intrinsicName,
-      value
+      value: value2
     };
   }
   throw new $SyntaxError("intrinsic " + name + " does not exist!");
@@ -457,7 +819,7 @@ var getIntrinsic = function GetIntrinsic(name, allowMissing) {
   var intrinsicBaseName = parts.length > 0 ? parts[0] : "";
   var intrinsic = getBaseIntrinsic("%" + intrinsicBaseName + "%", allowMissing);
   var intrinsicRealName = intrinsic.name;
-  var value = intrinsic.value;
+  var value2 = intrinsic.value;
   var skipFurtherCaching = false;
   var alias = intrinsic.alias;
   if (alias) {
@@ -477,32 +839,32 @@ var getIntrinsic = function GetIntrinsic(name, allowMissing) {
     intrinsicBaseName += "." + part;
     intrinsicRealName = "%" + intrinsicBaseName + "%";
     if (hasOwn$1(INTRINSICS, intrinsicRealName)) {
-      value = INTRINSICS[intrinsicRealName];
-    } else if (value != null) {
-      if (!(part in value)) {
+      value2 = INTRINSICS[intrinsicRealName];
+    } else if (value2 != null) {
+      if (!(part in value2)) {
         if (!allowMissing) {
           throw new $TypeError$1("base intrinsic for " + name + " exists, but the property is not available.");
         }
         return void 0;
       }
       if ($gOPD && i + 1 >= parts.length) {
-        var desc = $gOPD(value, part);
+        var desc = $gOPD(value2, part);
         isOwn = !!desc;
         if (isOwn && "get" in desc && !("originalValue" in desc.get)) {
-          value = desc.get;
+          value2 = desc.get;
         } else {
-          value = value[part];
+          value2 = value2[part];
         }
       } else {
-        isOwn = hasOwn$1(value, part);
-        value = value[part];
+        isOwn = hasOwn$1(value2, part);
+        value2 = value2[part];
       }
       if (isOwn && !skipFurtherCaching) {
-        INTRINSICS[intrinsicRealName] = value;
+        INTRINSICS[intrinsicRealName] = value2;
       }
     }
   }
-  return value;
+  return value2;
 };
 var callBindExports = {};
 var callBind$1 = {
@@ -672,7 +1034,7 @@ var objectInspect = function inspect_(obj, options, depth, seen) {
   } else if (indexOf(seen, obj) >= 0) {
     return "[Circular]";
   }
-  function inspect2(value, from, noIndent) {
+  function inspect2(value2, from, noIndent) {
     if (from) {
       seen = $arrSlice.call(seen);
       seen.push(from);
@@ -684,9 +1046,9 @@ var objectInspect = function inspect_(obj, options, depth, seen) {
       if (has$3(opts, "quoteStyle")) {
         newOpts.quoteStyle = opts.quoteStyle;
       }
-      return inspect_(value, newOpts, depth + 1, seen);
+      return inspect_(value2, newOpts, depth + 1, seen);
     }
-    return inspect_(value, opts, depth + 1, seen);
+    return inspect_(value2, opts, depth + 1, seen);
   }
   if (typeof obj === "function" && !isRegExp$1(obj)) {
     var name = nameOf(obj);
@@ -698,17 +1060,17 @@ var objectInspect = function inspect_(obj, options, depth, seen) {
     return typeof obj === "object" && !hasShammedSymbols ? markBoxed(symString) : symString;
   }
   if (isElement(obj)) {
-    var s = "<" + $toLowerCase.call(String(obj.nodeName));
+    var s2 = "<" + $toLowerCase.call(String(obj.nodeName));
     var attrs = obj.attributes || [];
     for (var i = 0; i < attrs.length; i++) {
-      s += " " + attrs[i].name + "=" + wrapQuotes(quote(attrs[i].value), "double", opts);
+      s2 += " " + attrs[i].name + "=" + wrapQuotes(quote(attrs[i].value), "double", opts);
     }
-    s += ">";
+    s2 += ">";
     if (obj.childNodes && obj.childNodes.length) {
-      s += "...";
+      s2 += "...";
     }
-    s += "</" + $toLowerCase.call(String(obj.nodeName)) + ">";
-    return s;
+    s2 += "</" + $toLowerCase.call(String(obj.nodeName)) + ">";
+    return s2;
   }
   if (isArray$3(obj)) {
     if (obj.length === 0) {
@@ -740,8 +1102,8 @@ var objectInspect = function inspect_(obj, options, depth, seen) {
   if (isMap(obj)) {
     var mapParts = [];
     if (mapForEach) {
-      mapForEach.call(obj, function(value, key) {
-        mapParts.push(inspect2(key, obj, true) + " => " + inspect2(value, obj));
+      mapForEach.call(obj, function(value2, key) {
+        mapParts.push(inspect2(key, obj, true) + " => " + inspect2(value2, obj));
       });
     }
     return collectionOf("Map", mapSize.call(obj), mapParts, indent);
@@ -749,8 +1111,8 @@ var objectInspect = function inspect_(obj, options, depth, seen) {
   if (isSet(obj)) {
     var setParts = [];
     if (setForEach) {
-      setForEach.call(obj, function(value) {
-        setParts.push(inspect2(value, obj));
+      setForEach.call(obj, function(value2) {
+        setParts.push(inspect2(value2, obj));
       });
     }
     return collectionOf("Set", setSize.call(obj), setParts, indent);
@@ -793,12 +1155,12 @@ var objectInspect = function inspect_(obj, options, depth, seen) {
   }
   return String(obj);
 };
-function wrapQuotes(s, defaultStyle, opts) {
+function wrapQuotes(s2, defaultStyle, opts) {
   var quoteChar = (opts.quoteStyle || defaultStyle) === "double" ? '"' : "'";
-  return quoteChar + s + quoteChar;
+  return quoteChar + s2 + quoteChar;
 }
-function quote(s) {
-  return $replace.call(String(s), /"/g, "&quot;");
+function quote(s2) {
+  return $replace.call(String(s2), /"/g, "&quot;");
 }
 function isArray$3(obj) {
   return toStr(obj) === "[object Array]" && (!toStringTag || !(typeof obj === "object" && toStringTag in obj));
@@ -887,7 +1249,7 @@ function isMap(x) {
     mapSize.call(x);
     try {
       setSize.call(x);
-    } catch (s) {
+    } catch (s2) {
       return true;
     }
     return x instanceof Map;
@@ -903,7 +1265,7 @@ function isWeakMap(x) {
     weakMapHas.call(x, weakMapHas);
     try {
       weakSetHas.call(x, weakSetHas);
-    } catch (s) {
+    } catch (s2) {
       return true;
     }
     return x instanceof WeakMap;
@@ -946,7 +1308,7 @@ function isWeakSet(x) {
     weakSetHas.call(x, weakSetHas);
     try {
       weakMapHas.call(x, weakMapHas);
-    } catch (s) {
+    } catch (s2) {
       return true;
     }
     return x instanceof WeakSet;
@@ -969,8 +1331,8 @@ function inspectString(str, opts) {
     var trailer = "... " + remaining + " more character" + (remaining > 1 ? "s" : "");
     return inspectString($slice.call(str, 0, opts.maxStringLength), opts) + trailer;
   }
-  var s = $replace.call($replace.call(str, /(['\\])/g, "\\$1"), /[\x00-\x1f]/g, lowbyte);
-  return wrapQuotes(s, "single", opts);
+  var s2 = $replace.call($replace.call(str, /(['\\])/g, "\\$1"), /[\x00-\x1f]/g, lowbyte);
+  return wrapQuotes(s2, "single", opts);
 }
 function lowbyte(c) {
   var n = c.charCodeAt(0);
@@ -1092,16 +1454,16 @@ var listGet = function(objects, key) {
   var node = listGetNode(objects, key);
   return node && node.value;
 };
-var listSet = function(objects, key, value) {
+var listSet = function(objects, key, value2) {
   var node = listGetNode(objects, key);
   if (node) {
-    node.value = value;
+    node.value = value2;
   } else {
     objects.next = {
       // eslint-disable-line no-param-reassign
       key,
       next: objects.next,
-      value
+      value: value2
     };
   }
 };
@@ -1149,22 +1511,22 @@ var sideChannel = function getSideChannel() {
       }
       return false;
     },
-    set: function(key, value) {
+    set: function(key, value2) {
       if ($WeakMap && key && (typeof key === "object" || typeof key === "function")) {
         if (!$wm) {
           $wm = new $WeakMap();
         }
-        $weakMapSet($wm, key, value);
+        $weakMapSet($wm, key, value2);
       } else if ($Map) {
         if (!$m) {
           $m = new $Map();
         }
-        $mapSet($m, key, value);
+        $mapSet($m, key, value2);
       } else {
         if (!$o) {
           $o = { key: {}, next: null };
         }
-        listSet($o, key, value);
+        listSet($o, key, value2);
       }
     }
   };
@@ -1179,11 +1541,11 @@ var Format = {
 var formats$3 = {
   "default": Format.RFC3986,
   formatters: {
-    RFC1738: function(value) {
-      return replace.call(value, percentTwenties, "+");
+    RFC1738: function(value2) {
+      return replace.call(value2, percentTwenties, "+");
     },
-    RFC3986: function(value) {
-      return String(value);
+    RFC3986: function(value2) {
+      return String(value2);
     }
   },
   RFC1738: Format.RFC1738,
@@ -1262,16 +1624,16 @@ var merge = function merge2(target, source, options) {
     return target;
   }
   return Object.keys(source).reduce(function(acc, key) {
-    var value = source[key];
+    var value2 = source[key];
     if (has$2.call(acc, key)) {
-      acc[key] = merge2(acc[key], value, options);
+      acc[key] = merge2(acc[key], value2, options);
     } else {
-      acc[key] = value;
+      acc[key] = value2;
     }
     return acc;
   }, mergeTarget);
 };
-var assign$1 = function assignSingleSource(target, source) {
+var assign = function assignSingleSource(target, source) {
   return Object.keys(source).reduce(function(acc, key) {
     acc[key] = source[key];
     return acc;
@@ -1328,8 +1690,8 @@ var encode = function encode2(str, defaultEncoder, charset, kind, format) {
   }
   return out;
 };
-var compact = function compact2(value) {
-  var queue = [{ obj: { o: value }, prop: "o" }];
+var compact = function compact2(value2) {
+  var queue = [{ obj: { o: value2 }, prop: "o" }];
   var refs = [];
   for (var i = 0; i < queue.length; ++i) {
     var item = queue[i];
@@ -1345,7 +1707,7 @@ var compact = function compact2(value) {
     }
   }
   compactQueue(queue);
-  return value;
+  return value2;
 };
 var isRegExp = function isRegExp2(obj) {
   return Object.prototype.toString.call(obj) === "[object RegExp]";
@@ -1371,7 +1733,7 @@ var maybeMap = function maybeMap2(val, fn) {
 };
 var utils$2 = {
   arrayToObject,
-  assign: assign$1,
+  assign,
   combine,
   compact,
   decode,
@@ -1404,7 +1766,7 @@ var pushToArray = function(arr, valueOrArray) {
 };
 var toISO = Date.prototype.toISOString;
 var defaultFormat = formats$1["default"];
-var defaults$2 = {
+var defaults$1 = {
   addQueryPrefix: false,
   allowDots: false,
   charset: "utf-8",
@@ -1451,23 +1813,23 @@ var stringify$1 = function stringify(object, prefix, generateArrayPrefix, commaR
   } else if (obj instanceof Date) {
     obj = serializeDate2(obj);
   } else if (generateArrayPrefix === "comma" && isArray$1(obj)) {
-    obj = utils$1.maybeMap(obj, function(value2) {
-      if (value2 instanceof Date) {
-        return serializeDate2(value2);
+    obj = utils$1.maybeMap(obj, function(value3) {
+      if (value3 instanceof Date) {
+        return serializeDate2(value3);
       }
-      return value2;
+      return value3;
     });
   }
   if (obj === null) {
     if (strictNullHandling) {
-      return encoder && !encodeValuesOnly ? encoder(prefix, defaults$2.encoder, charset, "key", format) : prefix;
+      return encoder && !encodeValuesOnly ? encoder(prefix, defaults$1.encoder, charset, "key", format) : prefix;
     }
     obj = "";
   }
   if (isNonNullishPrimitive(obj) || utils$1.isBuffer(obj)) {
     if (encoder) {
-      var keyValue = encodeValuesOnly ? prefix : encoder(prefix, defaults$2.encoder, charset, "key", format);
-      return [formatter(keyValue) + "=" + formatter(encoder(obj, defaults$2.encoder, charset, "value", format))];
+      var keyValue = encodeValuesOnly ? prefix : encoder(prefix, defaults$1.encoder, charset, "key", format);
+      return [formatter(keyValue) + "=" + formatter(encoder(obj, defaults$1.encoder, charset, "value", format))];
     }
     return [formatter(prefix) + "=" + formatter(String(obj))];
   }
@@ -1490,8 +1852,8 @@ var stringify$1 = function stringify(object, prefix, generateArrayPrefix, commaR
   var adjustedPrefix = commaRoundTrip && isArray$1(obj) && obj.length === 1 ? prefix + "[]" : prefix;
   for (var j2 = 0; j2 < objKeys.length; ++j2) {
     var key = objKeys[j2];
-    var value = typeof key === "object" && typeof key.value !== "undefined" ? key.value : obj[key];
-    if (skipNulls && value === null) {
+    var value2 = typeof key === "object" && typeof key.value !== "undefined" ? key.value : obj[key];
+    if (skipNulls && value2 === null) {
       continue;
     }
     var keyPrefix = isArray$1(obj) ? typeof generateArrayPrefix === "function" ? generateArrayPrefix(adjustedPrefix, key) : adjustedPrefix : adjustedPrefix + (allowDots ? "." + key : "[" + key + "]");
@@ -1499,7 +1861,7 @@ var stringify$1 = function stringify(object, prefix, generateArrayPrefix, commaR
     var valueSideChannel = getSideChannel2();
     valueSideChannel.set(sentinel, sideChannel2);
     pushToArray(values, stringify(
-      value,
+      value2,
       keyPrefix,
       generateArrayPrefix,
       commaRoundTrip,
@@ -1521,12 +1883,12 @@ var stringify$1 = function stringify(object, prefix, generateArrayPrefix, commaR
 };
 var normalizeStringifyOptions = function normalizeStringifyOptions2(opts) {
   if (!opts) {
-    return defaults$2;
+    return defaults$1;
   }
   if (opts.encoder !== null && typeof opts.encoder !== "undefined" && typeof opts.encoder !== "function") {
     throw new TypeError("Encoder has to be a function.");
   }
-  var charset = opts.charset || defaults$2.charset;
+  var charset = opts.charset || defaults$1.charset;
   if (typeof opts.charset !== "undefined" && opts.charset !== "utf-8" && opts.charset !== "iso-8859-1") {
     throw new TypeError("The charset option must be either utf-8, iso-8859-1, or undefined");
   }
@@ -1538,26 +1900,26 @@ var normalizeStringifyOptions = function normalizeStringifyOptions2(opts) {
     format = opts.format;
   }
   var formatter = formats$1.formatters[format];
-  var filter = defaults$2.filter;
+  var filter = defaults$1.filter;
   if (typeof opts.filter === "function" || isArray$1(opts.filter)) {
     filter = opts.filter;
   }
   return {
-    addQueryPrefix: typeof opts.addQueryPrefix === "boolean" ? opts.addQueryPrefix : defaults$2.addQueryPrefix,
-    allowDots: typeof opts.allowDots === "undefined" ? defaults$2.allowDots : !!opts.allowDots,
+    addQueryPrefix: typeof opts.addQueryPrefix === "boolean" ? opts.addQueryPrefix : defaults$1.addQueryPrefix,
+    allowDots: typeof opts.allowDots === "undefined" ? defaults$1.allowDots : !!opts.allowDots,
     charset,
-    charsetSentinel: typeof opts.charsetSentinel === "boolean" ? opts.charsetSentinel : defaults$2.charsetSentinel,
-    delimiter: typeof opts.delimiter === "undefined" ? defaults$2.delimiter : opts.delimiter,
-    encode: typeof opts.encode === "boolean" ? opts.encode : defaults$2.encode,
-    encoder: typeof opts.encoder === "function" ? opts.encoder : defaults$2.encoder,
-    encodeValuesOnly: typeof opts.encodeValuesOnly === "boolean" ? opts.encodeValuesOnly : defaults$2.encodeValuesOnly,
+    charsetSentinel: typeof opts.charsetSentinel === "boolean" ? opts.charsetSentinel : defaults$1.charsetSentinel,
+    delimiter: typeof opts.delimiter === "undefined" ? defaults$1.delimiter : opts.delimiter,
+    encode: typeof opts.encode === "boolean" ? opts.encode : defaults$1.encode,
+    encoder: typeof opts.encoder === "function" ? opts.encoder : defaults$1.encoder,
+    encodeValuesOnly: typeof opts.encodeValuesOnly === "boolean" ? opts.encodeValuesOnly : defaults$1.encodeValuesOnly,
     filter,
     format,
     formatter,
-    serializeDate: typeof opts.serializeDate === "function" ? opts.serializeDate : defaults$2.serializeDate,
-    skipNulls: typeof opts.skipNulls === "boolean" ? opts.skipNulls : defaults$2.skipNulls,
+    serializeDate: typeof opts.serializeDate === "function" ? opts.serializeDate : defaults$1.serializeDate,
+    skipNulls: typeof opts.skipNulls === "boolean" ? opts.skipNulls : defaults$1.skipNulls,
     sort: typeof opts.sort === "function" ? opts.sort : null,
-    strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults$2.strictNullHandling
+    strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults$1.strictNullHandling
   };
 };
 var stringify_1 = function(object, opts) {
@@ -1634,7 +1996,7 @@ var stringify_1 = function(object, opts) {
 var utils = utils$2;
 var has = Object.prototype.hasOwnProperty;
 var isArray = Array.isArray;
-var defaults$1 = {
+var defaults = {
   allowDots: false,
   allowPrototypes: false,
   allowSparse: false,
@@ -1695,14 +2057,14 @@ var parseValues = function parseQueryStringValues(str, options) {
     var pos = bracketEqualsPos === -1 ? part.indexOf("=") : bracketEqualsPos + 1;
     var key, val;
     if (pos === -1) {
-      key = options.decoder(part, defaults$1.decoder, charset, "key");
+      key = options.decoder(part, defaults.decoder, charset, "key");
       val = options.strictNullHandling ? null : "";
     } else {
-      key = options.decoder(part.slice(0, pos), defaults$1.decoder, charset, "key");
+      key = options.decoder(part.slice(0, pos), defaults.decoder, charset, "key");
       val = utils.maybeMap(
         parseArrayValue(part.slice(pos + 1), options),
         function(encodedVal) {
-          return options.decoder(encodedVal, defaults$1.decoder, charset, "value");
+          return options.decoder(encodedVal, defaults.decoder, charset, "value");
         }
       );
     }
@@ -1730,12 +2092,12 @@ var parseObject = function(chain, val, options, valuesParsed) {
     } else {
       obj = options.plainObjects ? /* @__PURE__ */ Object.create(null) : {};
       var cleanRoot = root.charAt(0) === "[" && root.charAt(root.length - 1) === "]" ? root.slice(1, -1) : root;
-      var index = parseInt(cleanRoot, 10);
+      var index2 = parseInt(cleanRoot, 10);
       if (!options.parseArrays && cleanRoot === "") {
         obj = { 0: leaf };
-      } else if (!isNaN(index) && root !== cleanRoot && String(index) === cleanRoot && index >= 0 && (options.parseArrays && index <= options.arrayLimit)) {
+      } else if (!isNaN(index2) && root !== cleanRoot && String(index2) === cleanRoot && index2 >= 0 && (options.parseArrays && index2 <= options.arrayLimit)) {
         obj = [];
-        obj[index] = leaf;
+        obj[index2] = leaf;
       } else if (cleanRoot !== "__proto__") {
         obj[cleanRoot] = leaf;
       }
@@ -1779,7 +2141,7 @@ var parseKeys = function parseQueryStringKeys(givenKey, val, options, valuesPars
 };
 var normalizeParseOptions = function normalizeParseOptions2(opts) {
   if (!opts) {
-    return defaults$1;
+    return defaults;
   }
   if (opts.decoder !== null && opts.decoder !== void 0 && typeof opts.decoder !== "function") {
     throw new TypeError("Decoder has to be a function.");
@@ -1787,25 +2149,25 @@ var normalizeParseOptions = function normalizeParseOptions2(opts) {
   if (typeof opts.charset !== "undefined" && opts.charset !== "utf-8" && opts.charset !== "iso-8859-1") {
     throw new TypeError("The charset option must be either utf-8, iso-8859-1, or undefined");
   }
-  var charset = typeof opts.charset === "undefined" ? defaults$1.charset : opts.charset;
+  var charset = typeof opts.charset === "undefined" ? defaults.charset : opts.charset;
   return {
-    allowDots: typeof opts.allowDots === "undefined" ? defaults$1.allowDots : !!opts.allowDots,
-    allowPrototypes: typeof opts.allowPrototypes === "boolean" ? opts.allowPrototypes : defaults$1.allowPrototypes,
-    allowSparse: typeof opts.allowSparse === "boolean" ? opts.allowSparse : defaults$1.allowSparse,
-    arrayLimit: typeof opts.arrayLimit === "number" ? opts.arrayLimit : defaults$1.arrayLimit,
+    allowDots: typeof opts.allowDots === "undefined" ? defaults.allowDots : !!opts.allowDots,
+    allowPrototypes: typeof opts.allowPrototypes === "boolean" ? opts.allowPrototypes : defaults.allowPrototypes,
+    allowSparse: typeof opts.allowSparse === "boolean" ? opts.allowSparse : defaults.allowSparse,
+    arrayLimit: typeof opts.arrayLimit === "number" ? opts.arrayLimit : defaults.arrayLimit,
     charset,
-    charsetSentinel: typeof opts.charsetSentinel === "boolean" ? opts.charsetSentinel : defaults$1.charsetSentinel,
-    comma: typeof opts.comma === "boolean" ? opts.comma : defaults$1.comma,
-    decoder: typeof opts.decoder === "function" ? opts.decoder : defaults$1.decoder,
-    delimiter: typeof opts.delimiter === "string" || utils.isRegExp(opts.delimiter) ? opts.delimiter : defaults$1.delimiter,
+    charsetSentinel: typeof opts.charsetSentinel === "boolean" ? opts.charsetSentinel : defaults.charsetSentinel,
+    comma: typeof opts.comma === "boolean" ? opts.comma : defaults.comma,
+    decoder: typeof opts.decoder === "function" ? opts.decoder : defaults.decoder,
+    delimiter: typeof opts.delimiter === "string" || utils.isRegExp(opts.delimiter) ? opts.delimiter : defaults.delimiter,
     // eslint-disable-next-line no-implicit-coercion, no-extra-parens
-    depth: typeof opts.depth === "number" || opts.depth === false ? +opts.depth : defaults$1.depth,
+    depth: typeof opts.depth === "number" || opts.depth === false ? +opts.depth : defaults.depth,
     ignoreQueryPrefix: opts.ignoreQueryPrefix === true,
-    interpretNumericEntities: typeof opts.interpretNumericEntities === "boolean" ? opts.interpretNumericEntities : defaults$1.interpretNumericEntities,
-    parameterLimit: typeof opts.parameterLimit === "number" ? opts.parameterLimit : defaults$1.parameterLimit,
+    interpretNumericEntities: typeof opts.interpretNumericEntities === "boolean" ? opts.interpretNumericEntities : defaults.interpretNumericEntities,
+    parameterLimit: typeof opts.parameterLimit === "number" ? opts.parameterLimit : defaults.parameterLimit,
     parseArrays: opts.parseArrays !== false,
-    plainObjects: typeof opts.plainObjects === "boolean" ? opts.plainObjects : defaults$1.plainObjects,
-    strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults$1.strictNullHandling
+    plainObjects: typeof opts.plainObjects === "boolean" ? opts.plainObjects : defaults.plainObjects,
+    strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults.strictNullHandling
   };
 };
 var parse$1 = function(str, opts) {
@@ -1868,11 +2230,11 @@ var nprogress = {
       template: '<div class="bar" role="bar"><div class="peg"></div></div><div class="spinner" role="spinner"><div class="spinner-icon"></div></div>'
     };
     NProgress.configure = function(options) {
-      var key, value;
+      var key, value2;
       for (key in options) {
-        value = options[key];
-        if (value !== void 0 && options.hasOwnProperty(key))
-          Settings[key] = value;
+        value2 = options[key];
+        if (value2 !== void 0 && options.hasOwnProperty(key))
+          Settings[key] = value2;
       }
       return this;
     };
@@ -1886,15 +2248,15 @@ var nprogress = {
       queue(function(next) {
         if (Settings.positionUsing === "")
           Settings.positionUsing = NProgress.getPositioningCSS();
-        css(bar, barPositionCSS(n, speed, ease));
+        css2(bar, barPositionCSS(n, speed, ease));
         if (n === 1) {
-          css(progress, {
+          css2(progress, {
             transition: "none",
             opacity: 1
           });
           progress.offsetWidth;
           setTimeout(function() {
-            css(progress, {
+            css2(progress, {
               transition: "all " + speed + "ms linear",
               opacity: 0
             });
@@ -1978,7 +2340,7 @@ var nprogress = {
       progress.id = "nprogress";
       progress.innerHTML = Settings.template;
       var bar = progress.querySelector(Settings.barSelector), perc = fromStart ? "-100" : toBarPerc(NProgress.status || 0), parent = document.querySelector(Settings.parent), spinner;
-      css(bar, {
+      css2(bar, {
         transition: "all 0 linear",
         transform: "translate3d(" + perc + "%,0,0)"
       });
@@ -2048,7 +2410,7 @@ var nprogress = {
           next();
       };
     }();
-    var css = function() {
+    var css2 = function() {
       var cssPrefixes = ["Webkit", "O", "Moz", "ms"], cssProps = {};
       function camelCase(string) {
         return string.replace(/^-ms-/, "ms-").replace(/-([\da-z])/gi, function(match2, letter) {
@@ -2071,17 +2433,17 @@ var nprogress = {
         name = camelCase(name);
         return cssProps[name] || (cssProps[name] = getVendorProp(name));
       }
-      function applyCss(element, prop, value) {
+      function applyCss(element, prop, value2) {
         prop = getStyleProp(prop);
-        element.style[prop] = value;
+        element.style[prop] = value2;
       }
       return function(element, properties) {
-        var args = arguments, prop, value;
+        var args = arguments, prop, value2;
         if (args.length == 2) {
           for (prop in properties) {
-            value = properties[prop];
-            if (value !== void 0 && properties.hasOwnProperty(prop))
-              applyCss(element, prop, value);
+            value2 = properties[prop];
+            if (value2 !== void 0 && properties.hasOwnProperty(prop))
+              applyCss(element, prop, value2);
           }
         } else {
           applyCss(element, args[1], args[2]);
@@ -2276,9 +2638,9 @@ var _ = typeof window > "u", C = class {
   cancel() {
     this.activeVisit && this.cancelVisit(this.activeVisit, { cancelled: true });
   }
-  visit(e, { method: i = "get", data: n = {}, replace: o = false, preserveScroll: c = false, preserveState: h2 = false, only: m = [], headers: b = {}, errorBag: a = "", forceFormData: l = false, onCancelToken: g = () => {
+  visit(e, { method: i = "get", data: n = {}, replace: o = false, preserveScroll: c = false, preserveState: h2 = false, only: m = [], headers: b = {}, errorBag: a = "", forceFormData: l = false, onCancelToken: g2 = () => {
   }, onBefore: L = () => {
-  }, onStart: d = () => {
+  }, onStart: d2 = () => {
   }, onProgress: p = () => {
   }, onFinish: T = () => {
   }, onCancel: y = () => {
@@ -2287,39 +2649,39 @@ var _ = typeof window > "u", C = class {
   }, queryStringArrayFormat: F = "brackets" } = {}) {
     let x = typeof e == "string" ? v(e) : e;
     if ((I(n) || l) && !(n instanceof FormData) && (n = A(n)), !(n instanceof FormData)) {
-      let [r, s] = k(i, x, n, F);
-      x = v(r), n = s;
+      let [r, s2] = k(i, x, n, F);
+      x = v(r), n = s2;
     }
     let P = { url: x, method: i, data: n, replace: o, preserveScroll: c, preserveState: h2, only: m, headers: b, errorBag: a, forceFormData: l, queryStringArrayFormat: F, cancelled: false, completed: false, interrupted: false };
     if (L(P) === false || !M(P))
       return;
     this.activeVisit && this.cancelVisit(this.activeVisit, { interrupted: true }), this.saveScrollPositions();
     let G = this.createVisitId();
-    this.activeVisit = { ...P, onCancelToken: g, onBefore: L, onStart: d, onProgress: p, onFinish: T, onCancel: y, onSuccess: D, onError: U, queryStringArrayFormat: F, cancelToken: new AbortController() }, g({ cancel: () => {
+    this.activeVisit = { ...P, onCancelToken: g2, onBefore: L, onStart: d2, onProgress: p, onFinish: T, onCancel: y, onSuccess: D, onError: U, queryStringArrayFormat: F, cancelToken: new AbortController() }, g2({ cancel: () => {
       this.activeVisit && this.cancelVisit(this.activeVisit, { cancelled: true });
-    } }), W(P), d(P), B({ method: i, url: w(x).href, data: i === "get" ? {} : n, params: i === "get" ? n : {}, signal: this.activeVisit.cancelToken.signal, headers: { ...b, Accept: "text/html, application/xhtml+xml", "X-Requested-With": "XMLHttpRequest", "X-Inertia": true, ...m.length ? { "X-Inertia-Partial-Component": this.page.component, "X-Inertia-Partial-Data": m.join(",") } : {}, ...a && a.length ? { "X-Inertia-Error-Bag": a } : {}, ...this.page.version ? { "X-Inertia-Version": this.page.version } : {} }, onUploadProgress: (r) => {
+    } }), W(P), d2(P), B({ method: i, url: w(x).href, data: i === "get" ? {} : n, params: i === "get" ? n : {}, signal: this.activeVisit.cancelToken.signal, headers: { ...b, Accept: "text/html, application/xhtml+xml", "X-Requested-With": "XMLHttpRequest", "X-Inertia": true, ...m.length ? { "X-Inertia-Partial-Component": this.page.component, "X-Inertia-Partial-Data": m.join(",") } : {}, ...a && a.length ? { "X-Inertia-Error-Bag": a } : {}, ...this.page.version ? { "X-Inertia-Version": this.page.version } : {} }, onUploadProgress: (r) => {
       n instanceof FormData && (r.percentage = r.progress ? Math.round(r.progress * 100) : 0, q(r), p(r));
     } }).then((r) => {
       var _a;
       if (!this.isInertiaResponse(r))
         return Promise.reject({ response: r });
-      let s = r.data;
-      m.length && s.component === this.page.component && (s.props = { ...this.page.props, ...s.props }), c = this.resolvePreserveOption(c, s), h2 = this.resolvePreserveOption(h2, s), h2 && ((_a = window.history.state) == null ? void 0 : _a.rememberedState) && s.component === this.page.component && (s.rememberedState = window.history.state.rememberedState);
-      let E = x, V = v(s.url);
-      return E.hash && !V.hash && w(E).href === V.href && (V.hash = E.hash, s.url = V.href), this.setPage(s, { visitId: G, replace: o, preserveScroll: c, preserveState: h2 });
+      let s2 = r.data;
+      m.length && s2.component === this.page.component && (s2.props = { ...this.page.props, ...s2.props }), c = this.resolvePreserveOption(c, s2), h2 = this.resolvePreserveOption(h2, s2), h2 && ((_a = window.history.state) == null ? void 0 : _a.rememberedState) && s2.component === this.page.component && (s2.rememberedState = window.history.state.rememberedState);
+      let E = x, V = v(s2.url);
+      return E.hash && !V.hash && w(E).href === V.href && (V.hash = E.hash, s2.url = V.href), this.setPage(s2, { visitId: G, replace: o, preserveScroll: c, preserveState: h2 });
     }).then(() => {
       let r = this.page.props.errors || {};
       if (Object.keys(r).length > 0) {
-        let s = a ? r[a] ? r[a] : {} : r;
-        return j(s), U(s);
+        let s2 = a ? r[a] ? r[a] : {} : r;
+        return j(s2), U(s2);
       }
       return K(this.page), D(this.page);
     }).catch((r) => {
       if (this.isInertiaResponse(r.response))
         return this.setPage(r.response.data, { visitId: G });
       if (this.isLocationVisitResponse(r.response)) {
-        let s = v(r.response.headers["x-inertia-location"]), E = x;
-        E.hash && !s.hash && w(E).href === s.href && (s.hash = E.hash), this.locationVisit(s, c === true);
+        let s2 = v(r.response.headers["x-inertia-location"]), E = x;
+        E.hash && !s2.hash && w(E).href === s2.href && (s2.hash = E.hash), this.locationVisit(s2, c === true);
       } else if (r.response)
         $(r.response) && z.show(r.response.data);
       else
@@ -2328,8 +2690,8 @@ var _ = typeof window > "u", C = class {
       this.activeVisit && this.finishVisit(this.activeVisit);
     }).catch((r) => {
       if (!B.isCancel(r)) {
-        let s = H(r);
-        if (this.activeVisit && this.finishVisit(this.activeVisit), s)
+        let s2 = H(r);
+        if (this.activeVisit && this.finishVisit(this.activeVisit), s2)
           return Promise.reject(r);
       }
     });
@@ -2494,409 +2856,23 @@ function Z({ delay: t = 250, color: e = "#29d", includeCSS: i = true, showSpinne
   ne(t), u.configure({ showSpinner: n }), i && ae(e);
 }
 var Oe = new C();
-function noop() {
-}
-const identity = (x) => x;
-function assign(tar, src2) {
-  for (const k2 in src2)
-    tar[k2] = src2[k2];
-  return tar;
-}
-function run(fn) {
-  return fn();
-}
-function blank_object() {
-  return /* @__PURE__ */ Object.create(null);
-}
-function run_all(fns) {
-  fns.forEach(run);
-}
-function is_function(thing) {
-  return typeof thing === "function";
-}
-function safe_not_equal(a, b) {
-  return a != a ? b == b : a !== b || (a && typeof a === "object" || typeof a === "function");
-}
-function subscribe(store2, ...callbacks) {
-  if (store2 == null) {
-    return noop;
-  }
-  const unsub = store2.subscribe(...callbacks);
-  return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
-}
-function compute_rest_props(props, keys) {
-  const rest = {};
-  keys = new Set(keys);
-  for (const k2 in props)
-    if (!keys.has(k2) && k2[0] !== "$")
-      rest[k2] = props[k2];
-  return rest;
-}
-function compute_slots(slots) {
-  const result = {};
-  for (const key in slots) {
-    result[key] = true;
-  }
-  return result;
-}
-const is_client = typeof window !== "undefined";
-let now = is_client ? () => window.performance.now() : () => Date.now();
-let raf = is_client ? (cb) => requestAnimationFrame(cb) : noop;
-const tasks = /* @__PURE__ */ new Set();
-function run_tasks(now2) {
-  tasks.forEach((task) => {
-    if (!task.c(now2)) {
-      tasks.delete(task);
-      task.f();
-    }
-  });
-  if (tasks.size !== 0)
-    raf(run_tasks);
-}
-function loop(callback) {
-  let task;
-  if (tasks.size === 0)
-    raf(run_tasks);
-  return {
-    promise: new Promise((fulfill) => {
-      tasks.add(task = { c: callback, f: fulfill });
-    }),
-    abort() {
-      tasks.delete(task);
-    }
-  };
-}
-function listen(node, event, handler, options) {
-  node.addEventListener(event, handler, options);
-  return () => node.removeEventListener(event, handler, options);
-}
-function prevent_default(fn) {
-  return function(event) {
-    event.preventDefault();
-    return fn.call(this, event);
-  };
-}
-function stop_propagation(fn) {
-  return function(event) {
-    event.stopPropagation();
-    return fn.call(this, event);
-  };
-}
-function custom_event(type, detail, { bubbles = false, cancelable = false } = {}) {
-  const e = document.createEvent("CustomEvent");
-  e.initCustomEvent(type, bubbles, cancelable, detail);
-  return e;
-}
-let current_component;
-function set_current_component(component) {
-  current_component = component;
-}
-function get_current_component() {
-  if (!current_component)
-    throw new Error("Function called outside component initialization");
-  return current_component;
-}
-function onDestroy(fn) {
-  get_current_component().$$.on_destroy.push(fn);
-}
-function createEventDispatcher() {
-  const component = get_current_component();
-  return (type, detail, { cancelable = false } = {}) => {
-    const callbacks = component.$$.callbacks[type];
-    if (callbacks) {
-      const event = custom_event(type, detail, { cancelable });
-      callbacks.slice().forEach((fn) => {
-        fn.call(component, event);
-      });
-      return !event.defaultPrevented;
-    }
-    return true;
-  };
-}
-function setContext(key, context) {
-  get_current_component().$$.context.set(key, context);
-  return context;
-}
-function getContext(key) {
-  return get_current_component().$$.context.get(key);
-}
-function bubble(component, event) {
-  const callbacks = component.$$.callbacks[event.type];
-  if (callbacks) {
-    callbacks.slice().forEach((fn) => fn.call(this, event));
-  }
-}
-const dirty_components = [];
-const binding_callbacks = [];
-let render_callbacks = [];
-const flush_callbacks = [];
-const resolved_promise = /* @__PURE__ */ Promise.resolve();
-let update_scheduled = false;
-function schedule_update() {
-  if (!update_scheduled) {
-    update_scheduled = true;
-    resolved_promise.then(flush);
-  }
-}
-function tick() {
-  schedule_update();
-  return resolved_promise;
-}
-function add_render_callback(fn) {
-  render_callbacks.push(fn);
-}
-const seen_callbacks = /* @__PURE__ */ new Set();
-let flushidx = 0;
-function flush() {
-  if (flushidx !== 0) {
-    return;
-  }
-  const saved_component = current_component;
-  do {
-    try {
-      while (flushidx < dirty_components.length) {
-        const component = dirty_components[flushidx];
-        flushidx++;
-        set_current_component(component);
-        update(component.$$);
-      }
-    } catch (e) {
-      dirty_components.length = 0;
-      flushidx = 0;
-      throw e;
-    }
-    set_current_component(null);
-    dirty_components.length = 0;
-    flushidx = 0;
-    while (binding_callbacks.length)
-      binding_callbacks.pop()();
-    for (let i = 0; i < render_callbacks.length; i += 1) {
-      const callback = render_callbacks[i];
-      if (!seen_callbacks.has(callback)) {
-        seen_callbacks.add(callback);
-        callback();
-      }
-    }
-    render_callbacks.length = 0;
-  } while (dirty_components.length);
-  while (flush_callbacks.length) {
-    flush_callbacks.pop()();
-  }
-  update_scheduled = false;
-  seen_callbacks.clear();
-  set_current_component(saved_component);
-}
-function update($$) {
-  if ($$.fragment !== null) {
-    $$.update();
-    run_all($$.before_update);
-    const dirty = $$.dirty;
-    $$.dirty = [-1];
-    $$.fragment && $$.fragment.p($$.ctx, dirty);
-    $$.after_update.forEach(add_render_callback);
-  }
-}
-const _boolean_attributes = [
-  "allowfullscreen",
-  "allowpaymentrequest",
-  "async",
-  "autofocus",
-  "autoplay",
-  "checked",
-  "controls",
-  "default",
-  "defer",
-  "disabled",
-  "formnovalidate",
-  "hidden",
-  "inert",
-  "ismap",
-  "loop",
-  "multiple",
-  "muted",
-  "nomodule",
-  "novalidate",
-  "open",
-  "playsinline",
-  "readonly",
-  "required",
-  "reversed",
-  "selected"
-];
-const boolean_attributes = /* @__PURE__ */ new Set([..._boolean_attributes]);
-const void_element_names = /^(?:area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)$/;
-function is_void(name) {
-  return void_element_names.test(name) || name.toLowerCase() === "!doctype";
-}
-const invalid_attribute_name_character = /[\s'">/=\u{FDD0}-\u{FDEF}\u{FFFE}\u{FFFF}\u{1FFFE}\u{1FFFF}\u{2FFFE}\u{2FFFF}\u{3FFFE}\u{3FFFF}\u{4FFFE}\u{4FFFF}\u{5FFFE}\u{5FFFF}\u{6FFFE}\u{6FFFF}\u{7FFFE}\u{7FFFF}\u{8FFFE}\u{8FFFF}\u{9FFFE}\u{9FFFF}\u{AFFFE}\u{AFFFF}\u{BFFFE}\u{BFFFF}\u{CFFFE}\u{CFFFF}\u{DFFFE}\u{DFFFF}\u{EFFFE}\u{EFFFF}\u{FFFFE}\u{FFFFF}\u{10FFFE}\u{10FFFF}]/u;
-function spread(args, attrs_to_add) {
-  const attributes = Object.assign({}, ...args);
-  if (attrs_to_add) {
-    const classes_to_add = attrs_to_add.classes;
-    const styles_to_add = attrs_to_add.styles;
-    if (classes_to_add) {
-      if (attributes.class == null) {
-        attributes.class = classes_to_add;
-      } else {
-        attributes.class += " " + classes_to_add;
-      }
-    }
-    if (styles_to_add) {
-      if (attributes.style == null) {
-        attributes.style = style_object_to_string(styles_to_add);
-      } else {
-        attributes.style = style_object_to_string(merge_ssr_styles(attributes.style, styles_to_add));
-      }
-    }
-  }
-  let str = "";
-  Object.keys(attributes).forEach((name) => {
-    if (invalid_attribute_name_character.test(name))
-      return;
-    const value = attributes[name];
-    if (value === true)
-      str += " " + name;
-    else if (boolean_attributes.has(name.toLowerCase())) {
-      if (value)
-        str += " " + name;
-    } else if (value != null) {
-      str += ` ${name}="${value}"`;
-    }
-  });
-  return str;
-}
-function merge_ssr_styles(style_attribute, style_directive) {
-  const style_object = {};
-  for (const individual_style of style_attribute.split(";")) {
-    const colon_index = individual_style.indexOf(":");
-    const name = individual_style.slice(0, colon_index).trim();
-    const value = individual_style.slice(colon_index + 1).trim();
-    if (!name)
-      continue;
-    style_object[name] = value;
-  }
-  for (const name in style_directive) {
-    const value = style_directive[name];
-    if (value) {
-      style_object[name] = value;
-    } else {
-      delete style_object[name];
-    }
-  }
-  return style_object;
-}
-const ATTR_REGEX = /[&"]/g;
-const CONTENT_REGEX = /[&<]/g;
-function escape$1(value, is_attr = false) {
-  const str = String(value);
-  const pattern = is_attr ? ATTR_REGEX : CONTENT_REGEX;
-  pattern.lastIndex = 0;
-  let escaped = "";
-  let last = 0;
-  while (pattern.test(str)) {
-    const i = pattern.lastIndex - 1;
-    const ch = str[i];
-    escaped += str.substring(last, i) + (ch === "&" ? "&amp;" : ch === '"' ? "&quot;" : "&lt;");
-    last = i + 1;
-  }
-  return escaped + str.substring(last);
-}
-function escape_attribute_value(value) {
-  const should_escape = typeof value === "string" || value && typeof value === "object";
-  return should_escape ? escape$1(value, true) : value;
-}
-function escape_object(obj) {
-  const result = {};
-  for (const key in obj) {
-    result[key] = escape_attribute_value(obj[key]);
-  }
-  return result;
-}
-function each(items, fn) {
-  let str = "";
-  for (let i = 0; i < items.length; i += 1) {
-    str += fn(items[i], i);
-  }
-  return str;
-}
-const missing_component = {
-  $$render: () => ""
-};
-function validate_component(component, name) {
-  if (!component || !component.$$render) {
-    if (name === "svelte:component")
-      name += " this={...}";
-    throw new Error(`<${name}> is not a valid SSR component. You may need to review your build config to ensure that dependencies are compiled, rather than imported as pre-compiled modules. Otherwise you may need to fix a <${name}>.`);
-  }
-  return component;
-}
-let on_destroy;
-function create_ssr_component(fn) {
-  function $$render(result, props, bindings, slots, context) {
-    const parent_component = current_component;
-    const $$ = {
-      on_destroy,
-      context: new Map(context || (parent_component ? parent_component.$$.context : [])),
-      // these will be immediately discarded
-      on_mount: [],
-      before_update: [],
-      after_update: [],
-      callbacks: blank_object()
-    };
-    set_current_component({ $$ });
-    const html = fn(result, props, bindings, slots);
-    set_current_component(parent_component);
-    return html;
-  }
-  return {
-    render: (props = {}, { $$slots = {}, context = /* @__PURE__ */ new Map() } = {}) => {
-      on_destroy = [];
-      const result = { title: "", head: "", css: /* @__PURE__ */ new Set() };
-      const html = $$render(result, props, {}, $$slots, context);
-      run_all(on_destroy);
-      return {
-        html,
-        css: {
-          code: Array.from(result.css).map((css) => css.code).join("\n"),
-          map: null
-          // TODO
-        },
-        head: result.title + result.head
-      };
-    },
-    $$render
-  };
-}
-function add_attribute(name, value, boolean) {
-  if (value == null || boolean && !value)
-    return "";
-  const assignment = boolean && value === true ? "" : `="${escape$1(value, true)}"`;
-  return ` ${name}${assignment}`;
-}
-function style_object_to_string(style_object) {
-  return Object.keys(style_object).filter((key) => style_object[key]).map((key) => `${key}: ${escape_attribute_value(style_object[key])};`).join(" ");
-}
-function add_styles(style_object) {
-  const styles = style_object_to_string(style_object);
-  return styles ? ` style="${styles}"` : "";
-}
 const subscriber_queue = [];
-function readable(value, start) {
+function readable(value2, start) {
   return {
-    subscribe: writable(value, start).subscribe
+    subscribe: writable(value2, start).subscribe
   };
 }
-function writable(value, start = noop) {
+function writable(value2, start = noop) {
   let stop;
   const subscribers = /* @__PURE__ */ new Set();
   function set(new_value) {
-    if (safe_not_equal(value, new_value)) {
-      value = new_value;
+    if (safe_not_equal(value2, new_value)) {
+      value2 = new_value;
       if (stop) {
         const run_queue = !subscriber_queue.length;
         for (const subscriber of subscribers) {
           subscriber[1]();
-          subscriber_queue.push(subscriber, value);
+          subscriber_queue.push(subscriber, value2);
         }
         if (run_queue) {
           for (let i = 0; i < subscriber_queue.length; i += 2) {
@@ -2908,7 +2884,7 @@ function writable(value, start = noop) {
     }
   }
   function update2(fn) {
-    set(fn(value));
+    set(fn(value2));
   }
   function subscribe2(run2, invalidate = noop) {
     const subscriber = [run2, invalidate];
@@ -2916,7 +2892,7 @@ function writable(value, start = noop) {
     if (subscribers.size === 1) {
       stop = start(set) || noop;
     }
-    run2(value);
+    run2(value2);
     return () => {
       subscribers.delete(subscriber);
       if (subscribers.size === 0 && stop) {
@@ -2948,8 +2924,8 @@ function derived(stores, fn, initial_value) {
         cleanup = is_function(result) ? result : noop;
       }
     };
-    const unsubscribers = stores_array.map((store2, i) => subscribe(store2, (value) => {
-      values[i] = value;
+    const unsubscribers = stores_array.map((store2, i) => subscribe(store2, (value2) => {
+      values[i] = value2;
       pending &= ~(1 << i);
       if (started) {
         sync();
@@ -2981,7 +2957,7 @@ const h = (component, props, children) => {
 };
 const Render$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $store, $$unsubscribe_store;
-  $$unsubscribe_store = subscribe(store, (value) => $store = value);
+  $$unsubscribe_store = subscribe(store, (value2) => $store = value2);
   let { component } = $$props;
   let { props = {} } = $$props;
   let { children = [] } = $$props;
@@ -2994,7 +2970,7 @@ const Render$1 = create_ssr_component(($$result, $$props, $$bindings, slots) => 
   $$unsubscribe_store();
   return `${$store.component ? `${validate_component(component || missing_component, "svelte:component").$$render($$result, Object.assign({}, props), {}, {
     default: () => {
-      return `${each(children, (child, index) => {
+      return `${each(children, (child, index2) => {
         return `${validate_component(Render$1, "svelte:self").$$render($$result, Object.assign({}, child), {}, {})}`;
       })}`;
     }
@@ -3005,7 +2981,7 @@ const App = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let layout;
   let components2;
   let $store, $$unsubscribe_store;
-  $$unsubscribe_store = subscribe(store, (value) => $store = value);
+  $$unsubscribe_store = subscribe(store, (value2) => $store = value2);
   child = $store.component && h($store.component.default, $store.page.props);
   layout = $store.component && $store.component.layout;
   components2 = layout ? Array.isArray(layout) ? layout.concat(child).reverse().reduce((child2, layout2) => h(layout2, $store.page.props, [child2])) : h(layout, $store.page.props, [child]) : child;
@@ -3020,11 +2996,11 @@ const SSR = create_ssr_component(($$result, $$props, $$bindings, slots) => {
     $$bindings.initialPage(initialPage);
   return `<div data-server-rendered="true"${add_attribute("id", id2, 0)}${add_attribute("data-page", JSON.stringify(initialPage), 0)}>${validate_component(App, "App").$$render($$result, {}, {}, {})}</div>`;
 });
-async function createInertiaApp({ id: id2 = "app", resolve: resolve2, setup, progress = {}, page: page2 }) {
+async function createInertiaApp({ id: id2 = "app", resolve, setup, progress = {}, page }) {
   const isServer = typeof window === "undefined";
   const el = isServer ? null : document.getElementById(id2);
-  const initialPage = page2 || JSON.parse(el.dataset.page);
-  const resolveComponent = (name) => Promise.resolve(resolve2(name));
+  const initialPage = page || JSON.parse(el.dataset.page);
+  const resolveComponent = (name) => Promise.resolve(resolve(name));
   await resolveComponent(initialPage.component).then((initialComponent) => {
     store.set({
       component: initialComponent,
@@ -3035,10 +3011,10 @@ async function createInertiaApp({ id: id2 = "app", resolve: resolve2, setup, pro
     Oe.init({
       initialPage,
       resolveComponent,
-      swapComponent: async ({ component, page: page3, preserveState }) => {
+      swapComponent: async ({ component, page: page2, preserveState }) => {
         store.update((current) => ({
           component,
-          page: page3,
+          page: page2,
           key: preserveState ? current.key : Date.now()
         }));
       }
@@ -3063,7 +3039,54 @@ async function createInertiaApp({ id: id2 = "app", resolve: resolve2, setup, pro
     };
   }
 }
-const page = derived(store, ($store) => $store.page);
+const Link = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $$restProps = compute_rest_props($$props, [
+    "href",
+    "as",
+    "data",
+    "method",
+    "replace",
+    "preserveScroll",
+    "preserveState",
+    "only",
+    "headers",
+    "queryStringArrayFormat"
+  ]);
+  let { href } = $$props;
+  let { as = "a" } = $$props;
+  let { data = {} } = $$props;
+  let { method = "get" } = $$props;
+  let { replace: replace2 = false } = $$props;
+  let { preserveScroll = false } = $$props;
+  let { preserveState = null } = $$props;
+  let { only = [] } = $$props;
+  let { headers = {} } = $$props;
+  let { queryStringArrayFormat = "brackets" } = $$props;
+  if ($$props.href === void 0 && $$bindings.href && href !== void 0)
+    $$bindings.href(href);
+  if ($$props.as === void 0 && $$bindings.as && as !== void 0)
+    $$bindings.as(as);
+  if ($$props.data === void 0 && $$bindings.data && data !== void 0)
+    $$bindings.data(data);
+  if ($$props.method === void 0 && $$bindings.method && method !== void 0)
+    $$bindings.method(method);
+  if ($$props.replace === void 0 && $$bindings.replace && replace2 !== void 0)
+    $$bindings.replace(replace2);
+  if ($$props.preserveScroll === void 0 && $$bindings.preserveScroll && preserveScroll !== void 0)
+    $$bindings.preserveScroll(preserveScroll);
+  if ($$props.preserveState === void 0 && $$bindings.preserveState && preserveState !== void 0)
+    $$bindings.preserveState(preserveState);
+  if ($$props.only === void 0 && $$bindings.only && only !== void 0)
+    $$bindings.only(only);
+  if ($$props.headers === void 0 && $$bindings.headers && headers !== void 0)
+    $$bindings.headers(headers);
+  if ($$props.queryStringArrayFormat === void 0 && $$bindings.queryStringArrayFormat && queryStringArrayFormat !== void 0)
+    $$bindings.queryStringArrayFormat(queryStringArrayFormat);
+  return `${((tag) => {
+    return tag ? `<${as}${spread([escape_object(as === "a" ? { href } : {}), escape_object($$restProps)], {})}>${is_void(tag) ? "" : `${slots.default ? slots.default({}) : ``}`}${is_void(tag) ? "" : `</${tag}>`}` : "";
+  })(as)}`;
+});
+derived(store, ($store) => $store.page);
 var lodash_isequalExports = {};
 var lodash_isequal = {
   get exports() {
@@ -3101,41 +3124,41 @@ var lodash_isequal = {
   }();
   var nodeIsTypedArray = nodeUtil && nodeUtil.isTypedArray;
   function arrayFilter(array, predicate) {
-    var index = -1, length = array == null ? 0 : array.length, resIndex = 0, result = [];
-    while (++index < length) {
-      var value = array[index];
-      if (predicate(value, index, array)) {
-        result[resIndex++] = value;
+    var index2 = -1, length = array == null ? 0 : array.length, resIndex = 0, result = [];
+    while (++index2 < length) {
+      var value2 = array[index2];
+      if (predicate(value2, index2, array)) {
+        result[resIndex++] = value2;
       }
     }
     return result;
   }
   function arrayPush(array, values) {
-    var index = -1, length = values.length, offset = array.length;
-    while (++index < length) {
-      array[offset + index] = values[index];
+    var index2 = -1, length = values.length, offset = array.length;
+    while (++index2 < length) {
+      array[offset + index2] = values[index2];
     }
     return array;
   }
   function arraySome(array, predicate) {
-    var index = -1, length = array == null ? 0 : array.length;
-    while (++index < length) {
-      if (predicate(array[index], index, array)) {
+    var index2 = -1, length = array == null ? 0 : array.length;
+    while (++index2 < length) {
+      if (predicate(array[index2], index2, array)) {
         return true;
       }
     }
     return false;
   }
   function baseTimes(n, iteratee) {
-    var index = -1, result = Array(n);
-    while (++index < n) {
-      result[index] = iteratee(index);
+    var index2 = -1, result = Array(n);
+    while (++index2 < n) {
+      result[index2] = iteratee(index2);
     }
     return result;
   }
   function baseUnary(func) {
-    return function(value) {
-      return func(value);
+    return function(value2) {
+      return func(value2);
     };
   }
   function cacheHas(cache, key) {
@@ -3145,9 +3168,9 @@ var lodash_isequal = {
     return object == null ? void 0 : object[key];
   }
   function mapToArray(map) {
-    var index = -1, result = Array(map.size);
-    map.forEach(function(value, key) {
-      result[++index] = [key, value];
+    var index2 = -1, result = Array(map.size);
+    map.forEach(function(value2, key) {
+      result[++index2] = [key, value2];
     });
     return result;
   }
@@ -3157,9 +3180,9 @@ var lodash_isequal = {
     };
   }
   function setToArray(set) {
-    var index = -1, result = Array(set.size);
-    set.forEach(function(value) {
-      result[++index] = value;
+    var index2 = -1, result = Array(set.size);
+    set.forEach(function(value2) {
+      result[++index2] = value2;
     });
     return result;
   }
@@ -3181,10 +3204,10 @@ var lodash_isequal = {
   var dataViewCtorString = toSource(DataView2), mapCtorString = toSource(Map2), promiseCtorString = toSource(Promise2), setCtorString = toSource(Set2), weakMapCtorString = toSource(WeakMap2);
   var symbolProto = Symbol2 ? Symbol2.prototype : void 0, symbolValueOf = symbolProto ? symbolProto.valueOf : void 0;
   function Hash(entries) {
-    var index = -1, length = entries == null ? 0 : entries.length;
+    var index2 = -1, length = entries == null ? 0 : entries.length;
     this.clear();
-    while (++index < length) {
-      var entry = entries[index];
+    while (++index2 < length) {
+      var entry = entries[index2];
       this.set(entry[0], entry[1]);
     }
   }
@@ -3209,10 +3232,10 @@ var lodash_isequal = {
     var data = this.__data__;
     return nativeCreate ? data[key] !== void 0 : hasOwnProperty.call(data, key);
   }
-  function hashSet(key, value) {
+  function hashSet(key, value2) {
     var data = this.__data__;
     this.size += this.has(key) ? 0 : 1;
-    data[key] = nativeCreate && value === void 0 ? HASH_UNDEFINED : value;
+    data[key] = nativeCreate && value2 === void 0 ? HASH_UNDEFINED : value2;
     return this;
   }
   Hash.prototype.clear = hashClear;
@@ -3221,10 +3244,10 @@ var lodash_isequal = {
   Hash.prototype.has = hashHas;
   Hash.prototype.set = hashSet;
   function ListCache(entries) {
-    var index = -1, length = entries == null ? 0 : entries.length;
+    var index2 = -1, length = entries == null ? 0 : entries.length;
     this.clear();
-    while (++index < length) {
-      var entry = entries[index];
+    while (++index2 < length) {
+      var entry = entries[index2];
       this.set(entry[0], entry[1]);
     }
   }
@@ -3233,33 +3256,33 @@ var lodash_isequal = {
     this.size = 0;
   }
   function listCacheDelete(key) {
-    var data = this.__data__, index = assocIndexOf(data, key);
-    if (index < 0) {
+    var data = this.__data__, index2 = assocIndexOf(data, key);
+    if (index2 < 0) {
       return false;
     }
     var lastIndex = data.length - 1;
-    if (index == lastIndex) {
+    if (index2 == lastIndex) {
       data.pop();
     } else {
-      splice.call(data, index, 1);
+      splice.call(data, index2, 1);
     }
     --this.size;
     return true;
   }
   function listCacheGet(key) {
-    var data = this.__data__, index = assocIndexOf(data, key);
-    return index < 0 ? void 0 : data[index][1];
+    var data = this.__data__, index2 = assocIndexOf(data, key);
+    return index2 < 0 ? void 0 : data[index2][1];
   }
   function listCacheHas(key) {
     return assocIndexOf(this.__data__, key) > -1;
   }
-  function listCacheSet(key, value) {
-    var data = this.__data__, index = assocIndexOf(data, key);
-    if (index < 0) {
+  function listCacheSet(key, value2) {
+    var data = this.__data__, index2 = assocIndexOf(data, key);
+    if (index2 < 0) {
       ++this.size;
-      data.push([key, value]);
+      data.push([key, value2]);
     } else {
-      data[index][1] = value;
+      data[index2][1] = value2;
     }
     return this;
   }
@@ -3269,10 +3292,10 @@ var lodash_isequal = {
   ListCache.prototype.has = listCacheHas;
   ListCache.prototype.set = listCacheSet;
   function MapCache(entries) {
-    var index = -1, length = entries == null ? 0 : entries.length;
+    var index2 = -1, length = entries == null ? 0 : entries.length;
     this.clear();
-    while (++index < length) {
-      var entry = entries[index];
+    while (++index2 < length) {
+      var entry = entries[index2];
       this.set(entry[0], entry[1]);
     }
   }
@@ -3295,9 +3318,9 @@ var lodash_isequal = {
   function mapCacheHas(key) {
     return getMapData(this, key).has(key);
   }
-  function mapCacheSet(key, value) {
+  function mapCacheSet(key, value2) {
     var data = getMapData(this, key), size = data.size;
-    data.set(key, value);
+    data.set(key, value2);
     this.size += data.size == size ? 0 : 1;
     return this;
   }
@@ -3307,18 +3330,18 @@ var lodash_isequal = {
   MapCache.prototype.has = mapCacheHas;
   MapCache.prototype.set = mapCacheSet;
   function SetCache(values) {
-    var index = -1, length = values == null ? 0 : values.length;
+    var index2 = -1, length = values == null ? 0 : values.length;
     this.__data__ = new MapCache();
-    while (++index < length) {
-      this.add(values[index]);
+    while (++index2 < length) {
+      this.add(values[index2]);
     }
   }
-  function setCacheAdd(value) {
-    this.__data__.set(value, HASH_UNDEFINED);
+  function setCacheAdd(value2) {
+    this.__data__.set(value2, HASH_UNDEFINED);
     return this;
   }
-  function setCacheHas(value) {
-    return this.__data__.has(value);
+  function setCacheHas(value2) {
+    return this.__data__.has(value2);
   }
   SetCache.prototype.add = SetCache.prototype.push = setCacheAdd;
   SetCache.prototype.has = setCacheHas;
@@ -3341,18 +3364,18 @@ var lodash_isequal = {
   function stackHas(key) {
     return this.__data__.has(key);
   }
-  function stackSet(key, value) {
+  function stackSet(key, value2) {
     var data = this.__data__;
     if (data instanceof ListCache) {
       var pairs = data.__data__;
       if (!Map2 || pairs.length < LARGE_ARRAY_SIZE - 1) {
-        pairs.push([key, value]);
+        pairs.push([key, value2]);
         this.size = ++data.size;
         return this;
       }
       data = this.__data__ = new MapCache(pairs);
     }
-    data.set(key, value);
+    data.set(key, value2);
     this.size = data.size;
     return this;
   }
@@ -3361,10 +3384,10 @@ var lodash_isequal = {
   Stack.prototype.get = stackGet;
   Stack.prototype.has = stackHas;
   Stack.prototype.set = stackSet;
-  function arrayLikeKeys(value, inherited) {
-    var isArr = isArray2(value), isArg = !isArr && isArguments(value), isBuff = !isArr && !isArg && isBuffer3(value), isType = !isArr && !isArg && !isBuff && isTypedArray(value), skipIndexes = isArr || isArg || isBuff || isType, result = skipIndexes ? baseTimes(value.length, String) : [], length = result.length;
-    for (var key in value) {
-      if ((inherited || hasOwnProperty.call(value, key)) && !(skipIndexes && // Safari 9 has enumerable `arguments.length` in strict mode.
+  function arrayLikeKeys(value2, inherited) {
+    var isArr = isArray2(value2), isArg = !isArr && isArguments(value2), isBuff = !isArr && !isArg && isBuffer3(value2), isType = !isArr && !isArg && !isBuff && isTypedArray(value2), skipIndexes = isArr || isArg || isBuff || isType, result = skipIndexes ? baseTimes(value2.length, String) : [], length = result.length;
+    for (var key in value2) {
+      if ((inherited || hasOwnProperty.call(value2, key)) && !(skipIndexes && // Safari 9 has enumerable `arguments.length` in strict mode.
       (key == "length" || // Node.js 0.10 has enumerable non-index properties on buffers.
       isBuff && (key == "offset" || key == "parent") || // PhantomJS 2 has enumerable non-index properties on typed arrays.
       isType && (key == "buffer" || key == "byteLength" || key == "byteOffset") || // Skip index properties.
@@ -3387,23 +3410,23 @@ var lodash_isequal = {
     var result = keysFunc(object);
     return isArray2(object) ? result : arrayPush(result, symbolsFunc(object));
   }
-  function baseGetTag(value) {
-    if (value == null) {
-      return value === void 0 ? undefinedTag : nullTag;
+  function baseGetTag(value2) {
+    if (value2 == null) {
+      return value2 === void 0 ? undefinedTag : nullTag;
     }
-    return symToStringTag && symToStringTag in Object(value) ? getRawTag(value) : objectToString2(value);
+    return symToStringTag && symToStringTag in Object(value2) ? getRawTag(value2) : objectToString2(value2);
   }
-  function baseIsArguments(value) {
-    return isObjectLike(value) && baseGetTag(value) == argsTag;
+  function baseIsArguments(value2) {
+    return isObjectLike(value2) && baseGetTag(value2) == argsTag;
   }
-  function baseIsEqual(value, other, bitmask, customizer, stack) {
-    if (value === other) {
+  function baseIsEqual(value2, other, bitmask, customizer, stack) {
+    if (value2 === other) {
       return true;
     }
-    if (value == null || other == null || !isObjectLike(value) && !isObjectLike(other)) {
-      return value !== value && other !== other;
+    if (value2 == null || other == null || !isObjectLike(value2) && !isObjectLike(other)) {
+      return value2 !== value2 && other !== other;
     }
-    return baseIsEqualDeep(value, other, bitmask, customizer, baseIsEqual, stack);
+    return baseIsEqualDeep(value2, other, bitmask, customizer, baseIsEqual, stack);
   }
   function baseIsEqualDeep(object, other, bitmask, customizer, equalFunc, stack) {
     var objIsArr = isArray2(object), othIsArr = isArray2(other), objTag = objIsArr ? arrayTag : getTag(object), othTag = othIsArr ? arrayTag : getTag(other);
@@ -3435,15 +3458,15 @@ var lodash_isequal = {
     stack || (stack = new Stack());
     return equalObjects(object, other, bitmask, customizer, equalFunc, stack);
   }
-  function baseIsNative(value) {
-    if (!isObject(value) || isMasked(value)) {
+  function baseIsNative(value2) {
+    if (!isObject(value2) || isMasked(value2)) {
       return false;
     }
-    var pattern = isFunction(value) ? reIsNative : reIsHostCtor;
-    return pattern.test(toSource(value));
+    var pattern = isFunction(value2) ? reIsNative : reIsHostCtor;
+    return pattern.test(toSource(value2));
   }
-  function baseIsTypedArray(value) {
-    return isObjectLike(value) && isLength(value.length) && !!typedArrayTags[baseGetTag(value)];
+  function baseIsTypedArray(value2) {
+    return isObjectLike(value2) && isLength(value2.length) && !!typedArrayTags[baseGetTag(value2)];
   }
   function baseKeys(object) {
     if (!isPrototype(object)) {
@@ -3466,13 +3489,13 @@ var lodash_isequal = {
     if (stacked && stack.get(other)) {
       return stacked == other;
     }
-    var index = -1, result = true, seen = bitmask & COMPARE_UNORDERED_FLAG ? new SetCache() : void 0;
+    var index2 = -1, result = true, seen = bitmask & COMPARE_UNORDERED_FLAG ? new SetCache() : void 0;
     stack.set(array, other);
     stack.set(other, array);
-    while (++index < arrLength) {
-      var arrValue = array[index], othValue = other[index];
+    while (++index2 < arrLength) {
+      var arrValue = array[index2], othValue = other[index2];
       if (customizer) {
-        var compared = isPartial ? customizer(othValue, arrValue, index, other, array, stack) : customizer(arrValue, othValue, index, array, other, stack);
+        var compared = isPartial ? customizer(othValue, arrValue, index2, other, array, stack) : customizer(arrValue, othValue, index2, array, other, stack);
       }
       if (compared !== void 0) {
         if (compared) {
@@ -3550,9 +3573,9 @@ var lodash_isequal = {
     if (objLength != othLength && !isPartial) {
       return false;
     }
-    var index = objLength;
-    while (index--) {
-      var key = objProps[index];
+    var index2 = objLength;
+    while (index2--) {
+      var key = objProps[index2];
       if (!(isPartial ? key in other : hasOwnProperty.call(other, key))) {
         return false;
       }
@@ -3565,8 +3588,8 @@ var lodash_isequal = {
     stack.set(object, other);
     stack.set(other, object);
     var skipCtor = isPartial;
-    while (++index < objLength) {
-      key = objProps[index];
+    while (++index2 < objLength) {
+      key = objProps[index2];
       var objValue = object[key], othValue = other[key];
       if (customizer) {
         var compared = isPartial ? customizer(othValue, objValue, key, other, object, stack) : customizer(objValue, othValue, key, object, other, stack);
@@ -3595,22 +3618,22 @@ var lodash_isequal = {
     return isKeyable(key) ? data[typeof key == "string" ? "string" : "hash"] : data.map;
   }
   function getNative(object, key) {
-    var value = getValue(object, key);
-    return baseIsNative(value) ? value : void 0;
+    var value2 = getValue(object, key);
+    return baseIsNative(value2) ? value2 : void 0;
   }
-  function getRawTag(value) {
-    var isOwn = hasOwnProperty.call(value, symToStringTag), tag = value[symToStringTag];
+  function getRawTag(value2) {
+    var isOwn = hasOwnProperty.call(value2, symToStringTag), tag = value2[symToStringTag];
     try {
-      value[symToStringTag] = void 0;
+      value2[symToStringTag] = void 0;
       var unmasked = true;
     } catch (e) {
     }
-    var result = nativeObjectToString.call(value);
+    var result = nativeObjectToString.call(value2);
     if (unmasked) {
       if (isOwn) {
-        value[symToStringTag] = tag;
+        value2[symToStringTag] = tag;
       } else {
-        delete value[symToStringTag];
+        delete value2[symToStringTag];
       }
     }
     return result;
@@ -3626,8 +3649,8 @@ var lodash_isequal = {
   };
   var getTag = baseGetTag;
   if (DataView2 && getTag(new DataView2(new ArrayBuffer(1))) != dataViewTag || Map2 && getTag(new Map2()) != mapTag || Promise2 && getTag(Promise2.resolve()) != promiseTag || Set2 && getTag(new Set2()) != setTag || WeakMap2 && getTag(new WeakMap2()) != weakMapTag) {
-    getTag = function(value) {
-      var result = baseGetTag(value), Ctor = result == objectTag ? value.constructor : void 0, ctorString = Ctor ? toSource(Ctor) : "";
+    getTag = function(value2) {
+      var result = baseGetTag(value2), Ctor = result == objectTag ? value2.constructor : void 0, ctorString = Ctor ? toSource(Ctor) : "";
       if (ctorString) {
         switch (ctorString) {
           case dataViewCtorString:
@@ -3645,23 +3668,23 @@ var lodash_isequal = {
       return result;
     };
   }
-  function isIndex(value, length) {
+  function isIndex(value2, length) {
     length = length == null ? MAX_SAFE_INTEGER : length;
-    return !!length && (typeof value == "number" || reIsUint.test(value)) && (value > -1 && value % 1 == 0 && value < length);
+    return !!length && (typeof value2 == "number" || reIsUint.test(value2)) && (value2 > -1 && value2 % 1 == 0 && value2 < length);
   }
-  function isKeyable(value) {
-    var type = typeof value;
-    return type == "string" || type == "number" || type == "symbol" || type == "boolean" ? value !== "__proto__" : value === null;
+  function isKeyable(value2) {
+    var type = typeof value2;
+    return type == "string" || type == "number" || type == "symbol" || type == "boolean" ? value2 !== "__proto__" : value2 === null;
   }
   function isMasked(func) {
     return !!maskSrcKey && maskSrcKey in func;
   }
-  function isPrototype(value) {
-    var Ctor = value && value.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto;
-    return value === proto;
+  function isPrototype(value2) {
+    var Ctor = value2 && value2.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto;
+    return value2 === proto;
   }
-  function objectToString2(value) {
-    return nativeObjectToString.call(value);
+  function objectToString2(value2) {
+    return nativeObjectToString.call(value2);
   }
   function toSource(func) {
     if (func != null) {
@@ -3676,38 +3699,38 @@ var lodash_isequal = {
     }
     return "";
   }
-  function eq(value, other) {
-    return value === other || value !== value && other !== other;
+  function eq(value2, other) {
+    return value2 === other || value2 !== value2 && other !== other;
   }
   var isArguments = baseIsArguments(function() {
     return arguments;
-  }()) ? baseIsArguments : function(value) {
-    return isObjectLike(value) && hasOwnProperty.call(value, "callee") && !propertyIsEnumerable.call(value, "callee");
+  }()) ? baseIsArguments : function(value2) {
+    return isObjectLike(value2) && hasOwnProperty.call(value2, "callee") && !propertyIsEnumerable.call(value2, "callee");
   };
   var isArray2 = Array.isArray;
-  function isArrayLike(value) {
-    return value != null && isLength(value.length) && !isFunction(value);
+  function isArrayLike(value2) {
+    return value2 != null && isLength(value2.length) && !isFunction(value2);
   }
   var isBuffer3 = nativeIsBuffer || stubFalse;
-  function isEqual2(value, other) {
-    return baseIsEqual(value, other);
+  function isEqual2(value2, other) {
+    return baseIsEqual(value2, other);
   }
-  function isFunction(value) {
-    if (!isObject(value)) {
+  function isFunction(value2) {
+    if (!isObject(value2)) {
       return false;
     }
-    var tag = baseGetTag(value);
+    var tag = baseGetTag(value2);
     return tag == funcTag || tag == genTag || tag == asyncTag || tag == proxyTag;
   }
-  function isLength(value) {
-    return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+  function isLength(value2) {
+    return typeof value2 == "number" && value2 > -1 && value2 % 1 == 0 && value2 <= MAX_SAFE_INTEGER;
   }
-  function isObject(value) {
-    var type = typeof value;
-    return value != null && (type == "object" || type == "function");
+  function isObject(value2) {
+    var type = typeof value2;
+    return value2 != null && (type == "object" || type == "function");
   }
-  function isObjectLike(value) {
-    return value != null && typeof value == "object";
+  function isObjectLike(value2) {
+    return value2 != null && typeof value2 == "object";
   }
   var isTypedArray = nodeIsTypedArray ? baseUnary(nodeIsTypedArray) : baseIsTypedArray;
   function keys(object) {
@@ -3722,223 +3745,1054 @@ var lodash_isequal = {
   module.exports = isEqual2;
 })(lodash_isequal, lodash_isequalExports);
 const isEqual = lodash_isequalExports;
-const tailwind = "";
-const __uno = "";
-const app = "";
-async function resolvePageComponent(path, pages) {
-  const page2 = pages[path];
-  if (typeof page2 === "undefined") {
-    throw new Error(`Page not found: ${path}`);
-  }
-  return typeof page2 === "function" ? page2() : page2;
+function useForm(...args) {
+  const rememberKey = typeof args[0] === "string" ? args[0] : null;
+  const data = (typeof args[0] === "string" ? args[1] : args[0]) || {};
+  const restored = rememberKey ? Oe.restore(rememberKey) : null;
+  let defaults2 = data;
+  let cancelToken = null;
+  let recentlySuccessfulTimeoutId = null;
+  let transform = (data2) => data2;
+  const store2 = writable({
+    ...restored ? restored.data : data,
+    isDirty: false,
+    errors: restored ? restored.errors : {},
+    hasErrors: false,
+    progress: null,
+    wasSuccessful: false,
+    recentlySuccessful: false,
+    processing: false,
+    setStore(key, value2) {
+      store2.update((store3) => {
+        return Object.assign({}, store3, typeof key === "string" ? { [key]: value2 } : key);
+      });
+    },
+    data() {
+      return Object.keys(data).reduce((carry, key) => {
+        carry[key] = this[key];
+        return carry;
+      }, {});
+    },
+    transform(callback) {
+      transform = callback;
+      return this;
+    },
+    defaults(key, value2) {
+      if (typeof key === "undefined") {
+        defaults2 = Object.assign(defaults2, this.data());
+        return this;
+      }
+      defaults2 = Object.assign(defaults2, value2 ? { [key]: value2 } : key);
+      return this;
+    },
+    reset(...fields) {
+      if (fields.length === 0) {
+        this.setStore(defaults2);
+      } else {
+        this.setStore(
+          Object.keys(defaults2).filter((key) => fields.includes(key)).reduce((carry, key) => {
+            carry[key] = defaults2[key];
+            return carry;
+          }, {})
+        );
+      }
+      return this;
+    },
+    setError(key, value2) {
+      this.setStore("errors", {
+        ...this.errors,
+        ...value2 ? { [key]: value2 } : key
+      });
+      return this;
+    },
+    clearErrors(...fields) {
+      this.setStore(
+        "errors",
+        Object.keys(this.errors).reduce(
+          (carry, field) => ({
+            ...carry,
+            ...fields.length > 0 && !fields.includes(field) ? { [field]: this.errors[field] } : {}
+          }),
+          {}
+        )
+      );
+      return this;
+    },
+    submit(method, url, options = {}) {
+      const data2 = transform(this.data());
+      const _options = {
+        ...options,
+        onCancelToken: (token) => {
+          cancelToken = token;
+          if (options.onCancelToken) {
+            return options.onCancelToken(token);
+          }
+        },
+        onBefore: (visit) => {
+          this.setStore("wasSuccessful", false);
+          this.setStore("recentlySuccessful", false);
+          clearTimeout(recentlySuccessfulTimeoutId);
+          if (options.onBefore) {
+            return options.onBefore(visit);
+          }
+        },
+        onStart: (visit) => {
+          this.setStore("processing", true);
+          if (options.onStart) {
+            return options.onStart(visit);
+          }
+        },
+        onProgress: (event) => {
+          this.setStore("progress", event);
+          if (options.onProgress) {
+            return options.onProgress(event);
+          }
+        },
+        onSuccess: async (page) => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          this.clearErrors();
+          this.setStore("wasSuccessful", true);
+          this.setStore("recentlySuccessful", true);
+          recentlySuccessfulTimeoutId = setTimeout(() => this.setStore("recentlySuccessful", false), 2e3);
+          if (options.onSuccess) {
+            return options.onSuccess(page);
+          }
+        },
+        onError: (errors) => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          this.clearErrors().setError(errors);
+          if (options.onError) {
+            return options.onError(errors);
+          }
+        },
+        onCancel: () => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          if (options.onCancel) {
+            return options.onCancel();
+          }
+        },
+        onFinish: () => {
+          this.setStore("processing", false);
+          this.setStore("progress", null);
+          cancelToken = null;
+          if (options.onFinish) {
+            return options.onFinish();
+          }
+        }
+      };
+      if (method === "delete") {
+        Oe.delete(url, { ..._options, data: data2 });
+      } else {
+        Oe[method](url, data2, _options);
+      }
+    },
+    get(url, options) {
+      this.submit("get", url, options);
+    },
+    post(url, options) {
+      this.submit("post", url, options);
+    },
+    put(url, options) {
+      this.submit("put", url, options);
+    },
+    patch(url, options) {
+      this.submit("patch", url, options);
+    },
+    delete(url, options) {
+      this.submit("delete", url, options);
+    },
+    cancel() {
+      if (cancelToken) {
+        cancelToken.cancel();
+      }
+    }
+  });
+  store2.subscribe((form) => {
+    if (form.isDirty === isEqual(form.data(), defaults2)) {
+      form.setStore("isDirty", !form.isDirty);
+    }
+    const hasErrors = Object.keys(form.errors).length > 0;
+    if (form.hasErrors !== hasErrors) {
+      form.setStore("hasErrors", !form.hasErrors);
+    }
+    if (rememberKey) {
+      Oe.remember({ data: form.data(), errors: form.errors }, rememberKey);
+    }
+  });
+  return store2;
 }
-const ApplicationLogo = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $$restProps = compute_rest_props($$props, []);
-  return `<svg${spread(
-    [
-      escape_object($$restProps),
-      { viewBox: "0 0 316 316" },
-      { xmlns: "http://www.w3.org/2000/svg" }
-    ],
-    {}
-  )}><path d="M305.8 81.125C305.77 80.995 305.69 80.885 305.65 80.755C305.56 80.525 305.49 80.285 305.37 80.075C305.29 79.935 305.17 79.815 305.07 79.685C304.94 79.515 304.83 79.325 304.68 79.175C304.55 79.045 304.39 78.955 304.25 78.845C304.09 78.715 303.95 78.575 303.77 78.475L251.32 48.275C249.97 47.495 248.31 47.495 246.96 48.275L194.51 78.475C194.33 78.575 194.19 78.725 194.03 78.845C193.89 78.955 193.73 79.045 193.6 79.175C193.45 79.325 193.34 79.515 193.21 79.685C193.11 79.815 192.99 79.935 192.91 80.075C192.79 80.285 192.71 80.525 192.63 80.755C192.58 80.875 192.51 80.995 192.48 81.125C192.38 81.495 192.33 81.875 192.33 82.265V139.625L148.62 164.795V52.575C148.62 52.185 148.57 51.805 148.47 51.435C148.44 51.305 148.36 51.195 148.32 51.065C148.23 50.835 148.16 50.595 148.04 50.385C147.96 50.245 147.84 50.125 147.74 49.995C147.61 49.825 147.5 49.635 147.35 49.485C147.22 49.355 147.06 49.265 146.92 49.155C146.76 49.025 146.62 48.885 146.44 48.785L93.99 18.585C92.64 17.805 90.98 17.805 89.63 18.585L37.18 48.785C37 48.885 36.86 49.035 36.7 49.155C36.56 49.265 36.4 49.355 36.27 49.485C36.12 49.635 36.01 49.825 35.88 49.995C35.78 50.125 35.66 50.245 35.58 50.385C35.46 50.595 35.38 50.835 35.3 51.065C35.25 51.185 35.18 51.305 35.15 51.435C35.05 51.805 35 52.185 35 52.575V232.235C35 233.795 35.84 235.245 37.19 236.025L142.1 296.425C142.33 296.555 142.58 296.635 142.82 296.725C142.93 296.765 143.04 296.835 143.16 296.865C143.53 296.965 143.9 297.015 144.28 297.015C144.66 297.015 145.03 296.965 145.4 296.865C145.5 296.835 145.59 296.775 145.69 296.745C145.95 296.655 146.21 296.565 146.45 296.435L251.36 236.035C252.72 235.255 253.55 233.815 253.55 232.245V174.885L303.81 145.945C305.17 145.165 306 143.725 306 142.155V82.265C305.95 81.875 305.89 81.495 305.8 81.125ZM144.2 227.205L100.57 202.515L146.39 176.135L196.66 147.195L240.33 172.335L208.29 190.625L144.2 227.205ZM244.75 114.995V164.795L226.39 154.225L201.03 139.625V89.825L219.39 100.395L244.75 114.995ZM249.12 57.105L292.81 82.265L249.12 107.425L205.43 82.265L249.12 57.105ZM114.49 184.425L96.13 194.995V85.305L121.49 70.705L139.85 60.135V169.815L114.49 184.425ZM91.76 27.425L135.45 52.585L91.76 77.745L48.07 52.585L91.76 27.425ZM43.67 60.135L62.03 70.705L87.39 85.305V202.545V202.555V202.565C87.39 202.735 87.44 202.895 87.46 203.055C87.49 203.265 87.49 203.485 87.55 203.695V203.705C87.6 203.875 87.69 204.035 87.76 204.195C87.84 204.375 87.89 204.575 87.99 204.745C87.99 204.745 87.99 204.755 88 204.755C88.09 204.905 88.22 205.035 88.33 205.175C88.45 205.335 88.55 205.495 88.69 205.635L88.7 205.645C88.82 205.765 88.98 205.855 89.12 205.965C89.28 206.085 89.42 206.225 89.59 206.325C89.6 206.325 89.6 206.325 89.61 206.335C89.62 206.335 89.62 206.345 89.63 206.345L139.87 234.775V285.065L43.67 229.705V60.135ZM244.75 229.705L148.58 285.075V234.775L219.8 194.115L244.75 179.875V229.705ZM297.2 139.625L253.49 164.795V114.995L278.85 100.395L297.21 89.825V139.625H297.2Z"></path></svg>`;
-});
-const Ziggy = { "url": "http://localhost:8000", "port": 8e3, "defaults": {}, "routes": { "sanctum.csrf-cookie": { "uri": "sanctum/csrf-cookie", "methods": ["GET", "HEAD"] }, "ignition.healthCheck": { "uri": "_ignition/health-check", "methods": ["GET", "HEAD"] }, "ignition.executeSolution": { "uri": "_ignition/execute-solution", "methods": ["POST"] }, "ignition.updateConfig": { "uri": "_ignition/update-config", "methods": ["POST"] }, "dashboard": { "uri": "dashboard", "methods": ["GET", "HEAD"] }, "users.index": { "uri": "users", "methods": ["GET", "HEAD"] }, "users.store": { "uri": "users", "methods": ["POST"] }, "users.update": { "uri": "users/{user}", "methods": ["PATCH"] }, "users.destroy": { "uri": "users/{user}", "methods": ["DELETE"] }, "register": { "uri": "register", "methods": ["GET", "HEAD"] }, "login": { "uri": "login", "methods": ["GET", "HEAD"] }, "password.request": { "uri": "forgot-password", "methods": ["GET", "HEAD"] }, "password.email": { "uri": "forgot-password", "methods": ["POST"] }, "password.reset": { "uri": "password-reset/{token}", "methods": ["GET", "HEAD"] }, "password.update": { "uri": "password-reset", "methods": ["POST"] }, "verification.notice": { "uri": "verify-email", "methods": ["GET", "HEAD"] }, "verification.verify": { "uri": "verify-email/{id}/{hash}", "methods": ["GET", "HEAD"] }, "verification.send": { "uri": "email/verification-notification", "methods": ["POST"] }, "password.confirm": { "uri": "confirm-password", "methods": ["GET", "HEAD"] }, "logout": { "uri": "logout", "methods": ["POST"] } } };
-if (typeof window !== "undefined" && typeof window.Ziggy !== "undefined") {
-  Object.assign(Ziggy.routes, window.Ziggy.routes);
-}
-const route = (name, params, absolute) => {
-  return ZiggyRoute(name, params, absolute, Ziggy);
-};
-const DarkThemeSwitcher = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  return `<button class="border p2 rounded border-dashed dark:border-slate-6 dark:text-slate-5 "><i class="i-carbon-moon dark:i-carbon-sun block"></i></button>`;
-});
-const Avatar = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let { src: src2 } = $$props;
-  let { size = 4 } = $$props;
-  if ($$props.src === void 0 && $$bindings.src && src2 !== void 0)
-    $$bindings.src(src2);
-  if ($$props.size === void 0 && $$bindings.size && size !== void 0)
-    $$bindings.size(size);
-  return `<div style="${"width: " + escape$1(size, true) + "rem;height:" + escape$1(size, true) + "rem"}" class="rounded-g overflow-hidden rounded-full border border-blue p1 "><img class="h-full w-full object-cover rounded-full"${add_attribute("src", src2, 0)}></div>`;
-});
-const NavLink = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $$restProps = compute_rest_props($$props, ["href", "active"]);
-  let { href } = $$props;
-  let { active } = $$props;
+const Link_1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { href = null, active = false } = $$props;
+  const classes = active ? "inline-flex items-center px-1 pt-1 border-b-2 border-indigo-400 dark:border-indigo-600 text-sm font-medium leading-5 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-indigo-700 transition duration-150 ease-in-out" : "inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium leading-5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-700 focus:outline-none focus:text-gray-700 dark:focus:text-gray-300 focus:border-gray-300 dark:focus:border-gray-700 transition duration-150 ease-in-out";
   if ($$props.href === void 0 && $$bindings.href && href !== void 0)
     $$bindings.href(href);
   if ($$props.active === void 0 && $$bindings.active && active !== void 0)
     $$bindings.active(active);
-  return `<a${spread(
+  return `${validate_component(Link, "Link").$$render($$result, { href, class: classes }, {}, {
+    default: () => {
+      return `${slots.default ? slots.default({}) : ``}`;
+    }
+  })}
+
+
+
+
+`;
+});
+const Guest = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `
+
+<div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100 dark:bg-gray-900"><div>${validate_component(Link_1, "Link").$$render($$result, { href: "/" }, {}, {
+    default: () => {
+      return `${validate_component(ApplicationLogo, "ApplicationLogo").$$render(
+        $$result,
+        {
+          classes: "w-20 h-20 fill-current text-gray-500"
+        },
+        {},
+        {}
+      )}`;
+    }
+  })}</div>
+
+    <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white dark:bg-gray-800 shadow-md overflow-hidden sm:rounded-lg">${slots.default ? slots.default({}) : ``}</div></div>`;
+});
+const Form = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $$restProps = compute_rest_props($$props, ["initialValues", "url", "method", "config", "useAxios"]);
+  let $form, $$unsubscribe_form;
+  let { initialValues = {} } = $$props;
+  let { url = "" } = $$props;
+  let { method = "post" } = $$props;
+  let { config = (form2) => ({}) } = $$props;
+  let { useAxios = false } = $$props;
+  let form = useForm(initialValues);
+  $$unsubscribe_form = subscribe(form, (value2) => $form = value2);
+  setContext("form", form);
+  createEventDispatcher();
+  if ($$props.initialValues === void 0 && $$bindings.initialValues && initialValues !== void 0)
+    $$bindings.initialValues(initialValues);
+  if ($$props.url === void 0 && $$bindings.url && url !== void 0)
+    $$bindings.url(url);
+  if ($$props.method === void 0 && $$bindings.method && method !== void 0)
+    $$bindings.method(method);
+  if ($$props.config === void 0 && $$bindings.config && config !== void 0)
+    $$bindings.config(config);
+  if ($$props.useAxios === void 0 && $$bindings.useAxios && useAxios !== void 0)
+    $$bindings.useAxios(useAxios);
+  $$unsubscribe_form();
+  return `<form${spread([escape_object($$restProps), { method: "POST" }], {})}>${slots.default ? slots.default({ form: $form, loading: $form.processing }) : ``}</form>`;
+});
+function useInput({ name, label }) {
+  let computedLabel = label ?? (name == null ? void 0 : name.replace(/^[-_]*(.)/, (_2, c) => c.toUpperCase()).replace(/[-_]+(.)/g, (_2, c) => " " + c.toUpperCase()));
+  let computedName = name ?? (label == null ? void 0 : label.replace(/ /g, "_").toLowerCase());
+  let id2 = Math.random().toString(36).substr(2, 9);
+  return { computedName, computedLabel, id: id2 };
+}
+const Field = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let error;
+  let disabled;
+  let $$restProps = compute_rest_props($$props, []);
+  let $form, $$unsubscribe_form;
+  const form = getContext("form");
+  $$unsubscribe_form = subscribe(form, (value2) => $form = value2);
+  let { computedName, computedLabel, id: id2 } = useInput($$props);
+  error = $form.errors[computedName];
+  disabled = $$restProps.disabled;
+  $$unsubscribe_form();
+  return `<div class="${["my-5 dark:text-slate-3", disabled ? "op50" : ""].join(" ").trim()}"><label class="mb-2 block"${add_attribute("for", id2, 0)}>${escape$1(computedLabel)}</label>
+  <input${spread(
     [
       escape_object($$restProps),
       {
-        class: escape_attribute_value(clsx("inline-flex items-center px-1 pt-1 border-b-2 pb-3 ", active ? "text-slate-7 border-indigo dark:text-slate-2" : "text-slate-4 border-transparent"))
+        class: "w-full border rounded outline-none py-2 px-2 dark:bg-slate-8 dark:border-slate-7 dark:text-slate-3 "
       },
-      { href: escape_attribute_value(href) }
+      { id: escape_attribute_value(id2) },
+      {
+        name: escape_attribute_value(computedName)
+      }
     ],
     {}
-  )}>${slots.default ? slots.default({}) : ``}</a>`;
+  )}${add_attribute("value", $form[computedName], 0)}>
+  ${error ? `<span class="text-red-5 text-xs block mt-1">${escape$1(error)}</span>` : ``}</div>`;
 });
-const defaults = {
-  type: "info",
-  duration: 3e3,
-  position: "top-right",
-  closable: true
-};
-let id$1 = 1;
-const createToast = (global2 = {}) => {
-  const { subscribe: subscribe2, update: update2 } = writable([]);
-  const add = (title, options = {}) => {
-    let toast2 = {
-      id: id$1++,
-      title,
-      ...defaults,
-      ...options
-    };
-    update2((items) => [...items, toast2]);
+const Button = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let classes;
+  let $$restProps = compute_rest_props($$props, ["color", "size", "loading", "icon"]);
+  let $$slots = compute_slots(slots);
+  let { color = "btn-blue" } = $$props;
+  let { size = "md" } = $$props;
+  let { loading = false } = $$props;
+  let { icon = null } = $$props;
+  const sizeClasses = {
+    xs: "px-3 py-2 text-xs",
+    sm: "px-4 py-2 text-sm",
+    md: "px-5 py-2.5 text-sm",
+    lg: "px-5 py-3 text-base",
+    xl: "px-6 py-3.5 text-base"
   };
-  const remove = (id2) => {
-    update2((items) => items.filter((item) => item.id !== id2));
+  const sizeWithOnlyIconClasses = {
+    xs: "p-1  text-xs",
+    sm: "p-2  text-sm",
+    md: "p-3  text-sm",
+    lg: "p-5  text-base",
+    xl: "p-6 text-base"
   };
-  const success = (message, options = {}) => add(message, { ...options, type: "success" });
-  const error = (message, options = {}) => add(message, { ...options, type: "error" });
-  const warning = (message, options = {}) => add(message, { ...options, type: "warning" });
-  const info = (message, options = {}) => add(message, { ...options, type: "info" });
-  return {
-    subscribe: subscribe2,
-    success,
-    error,
-    warning,
-    info,
-    remove
-  };
-};
-const toast = createToast();
-function is_date(obj) {
-  return Object.prototype.toString.call(obj) === "[object Date]";
-}
-function get_interpolator(a, b) {
-  if (a === b || a !== a)
-    return () => a;
-  const type = typeof a;
-  if (type !== typeof b || Array.isArray(a) !== Array.isArray(b)) {
-    throw new Error("Cannot interpolate values of different type");
-  }
-  if (Array.isArray(a)) {
-    const arr = b.map((bi, i) => {
-      return get_interpolator(a[i], bi);
-    });
-    return (t) => arr.map((fn) => fn(t));
-  }
-  if (type === "object") {
-    if (!a || !b)
-      throw new Error("Object cannot be null");
-    if (is_date(a) && is_date(b)) {
-      a = a.getTime();
-      b = b.getTime();
-      const delta = b - a;
-      return (t) => new Date(a + t * delta);
-    }
-    const keys = Object.keys(b);
-    const interpolators = {};
-    keys.forEach((key) => {
-      interpolators[key] = get_interpolator(a[key], b[key]);
-    });
-    return (t) => {
-      const result = {};
-      keys.forEach((key) => {
-        result[key] = interpolators[key](t);
-      });
-      return result;
-    };
-  }
-  if (type === "number") {
-    const delta = b - a;
-    return (t) => a + t * delta;
-  }
-  throw new Error(`Cannot interpolate ${type} values`);
-}
-function tweened(value, defaults2 = {}) {
-  const store2 = writable(value);
-  let task;
-  let target_value = value;
-  function set(new_value, opts) {
-    if (value == null) {
-      store2.set(value = new_value);
-      return Promise.resolve();
-    }
-    target_value = new_value;
-    let previous_task = task;
-    let started = false;
-    let { delay = 0, duration = 400, easing = identity, interpolate = get_interpolator } = assign(assign({}, defaults2), opts);
-    if (duration === 0) {
-      if (previous_task) {
-        previous_task.abort();
-        previous_task = null;
+  if ($$props.color === void 0 && $$bindings.color && color !== void 0)
+    $$bindings.color(color);
+  if ($$props.size === void 0 && $$bindings.size && size !== void 0)
+    $$bindings.size(size);
+  if ($$props.loading === void 0 && $$bindings.loading && loading !== void 0)
+    $$bindings.loading(loading);
+  if ($$props.icon === void 0 && $$bindings.icon && icon !== void 0)
+    $$bindings.icon(icon);
+  classes = clsx("rounded-lg  relative  active:scale-95 duration-300 transform transition-all ", icon !== null && !$$slots.default && sizeWithOnlyIconClasses[size], $$slots.default && sizeClasses[size], color, ($$props.disabled || loading) && "pointer-events-none ", $$props.class);
+  return `<button${spread(
+    [
+      escape_object($$restProps),
+      { class: escape_attribute_value(classes) },
+      {
+        disabled: $$props.disabled || loading || null
       }
-      store2.set(value = target_value);
-      return Promise.resolve();
-    }
-    const start = now() + delay;
-    let fn;
-    task = loop((now2) => {
-      if (now2 < start)
-        return true;
-      if (!started) {
-        fn = interpolate(value, new_value);
-        if (typeof duration === "function")
-          duration = duration(value, new_value);
-        started = true;
-      }
-      if (previous_task) {
-        previous_task.abort();
-        previous_task = null;
-      }
-      const elapsed = now2 - start;
-      if (elapsed > duration) {
-        store2.set(value = new_value);
-        return false;
-      }
-      store2.set(value = fn(easing(elapsed / duration)));
-      return true;
-    });
-    return task.promise;
-  }
-  return {
-    set,
-    update: (fn, opts) => set(fn(target_value, value), opts),
-    subscribe: store2.subscribe
-  };
-}
-const ToastItem = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let icon;
-  let { item } = $$props;
-  tweened(0, { duration: item.duration, easing: identity });
-  let interval;
-  onDestroy(() => clearTimeout(interval));
-  if ($$props.item === void 0 && $$bindings.item && item !== void 0)
-    $$bindings.item(item);
-  icon = clsx(item.type === "success" && "i-ic:outline-check-circle-outline text-green-500", item.type === "error" && "i-ion:close-circle-outline text-red-500", item.type === "warning" && "i-mdi:warning-circle-outline text-yellow-500", item.type === "info" && "i-material-symbols:info-outline-rounded text-blue-500");
-  return `<div class="${"bg-white dark:bg-slate-700 border dark:border-slate-6 w-100 my-2 rounded-lg p-4 shadow flex justify-between " + escape$1(item.details ? "items-start" : "items-center", true) + " gap-4"}"><div class="${"flex gap-x-3 " + escape$1(clsx(!item.details && "items-center"), true)}"><i${add_attribute("class", clsx("flex-shrink-0", icon, item.details && "mt-1"), 0)}></i>
-    <div><span class="text-[1rem]">${escape$1(item.title)}</span>
-      ${item.details ? `<div class="op-60 text-sm py-1">${escape$1(item.details)}</div>` : ``}</div></div>
+    ],
+    {}
+  )}><div>${loading ? `<div class="absolute inset-0 flex justify-center items-center"><div${add_attribute("class", clsx("w-5 h-5 rounded-full animate-spin animate-duration-2000  border-2 border-dashed btn-spinner"), 0)}></div></div>` : ``}
+    <div${add_attribute("class", clsx(icon && "flex justify-between items-center gap-x-3", loading && "op-0"), 0)}>${icon ? `<div${add_attribute("class", clsx(icon), 0)}></div>` : ``}
+      ${slots.default ? slots.default({}) : ``}</div></div></button>`;
+});
+const ConfirmPassword = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `${$$result.head += `${$$result.title = `<title>Confirm Password</title>`, ""}`, ""}
 
-  <button${add_attribute("class", clsx(item.details && "pt-.7"), 0)}><i class="i-ic:baseline-close text-gray-400 hover:text-gray-500 cursor-pointer"></i></button></div>`;
+${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
+    default: () => {
+      return `<div class="mb-4 text-sm text-gray-600">This is a secure area of the application. Please confirm your password before continuing.
+  </div>
+
+
+  ${validate_component(Form, "Form").$$render($$result, {}, {}, {
+        default: ({ form }) => {
+          return `${validate_component(Field, "Field").$$render($$result, { name: "password", type: "password" }, {}, {})}
+    <div class="flex justify-end">${validate_component(Button, "Button").$$render($$result, { disabled: form.processing }, {}, {
+            default: () => {
+              return `Confirm`;
+            }
+          })}</div>`;
+        }
+      })}`;
+    }
+  })}`;
 });
-const Toast = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $toast, $$unsubscribe_toast;
-  $$unsubscribe_toast = subscribe(toast, (value) => $toast = value);
-  let { options = {} } = $$props;
-  if ($$props.options === void 0 && $$bindings.options && options !== void 0)
-    $$bindings.options(options);
-  $$unsubscribe_toast();
-  return `<ul class="fixed top-5 right-5 z-50">${each($toast, (item) => {
-    return `<li class="mb-2">${validate_component(ToastItem, "ToastItem").$$render($$result, { item }, {}, {})}
-    </li>`;
-  })}</ul>`;
+const __vite_glob_0_0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: ConfirmPassword
+}, Symbol.toStringTag, { value: "Module" }));
+const Ziggy = { "url": "http://localhost:8000", "port": 8e3, "defaults": {}, "routes": { "sanctum.csrf-cookie": { "uri": "sanctum/csrf-cookie", "methods": ["GET", "HEAD"] }, "ignition.healthCheck": { "uri": "_ignition/health-check", "methods": ["GET", "HEAD"] }, "ignition.executeSolution": { "uri": "_ignition/execute-solution", "methods": ["POST"] }, "ignition.updateConfig": { "uri": "_ignition/update-config", "methods": ["POST"] }, "dashboard": { "uri": "dashboard", "methods": ["GET", "HEAD"] }, "users.index": { "uri": "users", "methods": ["GET", "HEAD"] }, "users.store": { "uri": "users", "methods": ["POST"] }, "users.update": { "uri": "users/{user}", "methods": ["PATCH"] }, "users.destroy": { "uri": "users/{user}", "methods": ["DELETE"] }, "register": { "uri": "register", "methods": ["GET", "HEAD"] }, "login": { "uri": "login", "methods": ["GET", "HEAD"] }, "password.request": { "uri": "forgot-password", "methods": ["GET", "HEAD"] }, "password.email": { "uri": "forgot-password", "methods": ["POST"] }, "password.reset": { "uri": "password-reset/{token}", "methods": ["GET", "HEAD"] }, "password.update": { "uri": "password-reset", "methods": ["POST"] }, "verification.notice": { "uri": "verify-email", "methods": ["GET", "HEAD"] }, "verification.verify": { "uri": "verify-email/{id}/{hash}", "methods": ["GET", "HEAD"] }, "verification.send": { "uri": "email/verification-notification", "methods": ["POST"] }, "password.confirm": { "uri": "confirm-password", "methods": ["GET", "HEAD"] }, "logout": { "uri": "logout", "methods": ["POST"] } } };
+if (typeof window !== "undefined" && typeof window.Ziggy !== "undefined") {
+  Object.assign(Ziggy.routes, window.Ziggy.routes);
+}
+const route$1 = (name, params, absolute) => {
+  return ZiggyRoute(name, params, absolute, Ziggy);
+};
+const ForgotPassword = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { status } = $$props;
+  if ($$props.status === void 0 && $$bindings.status && status !== void 0)
+    $$bindings.status(status);
+  return `${$$result.head += `${$$result.title = `<title>Forgot Password</title>`, ""}`, ""}
+
+${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
+    default: () => {
+      return `<div class="mb-4 text-sm ">Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.
+  </div>
+
+  ${status ? `<div class="mb-4 font-medium text-sm text-green-600">${escape$1(status)}</div>` : ``}
+
+  ${validate_component(Form, "Form").$$render(
+        $$result,
+        {
+          initialValues: { email: null },
+          url: route$1("password.email")
+        },
+        {},
+        {
+          default: ({ form }) => {
+            return `${validate_component(Field, "Field").$$render($$result, { autofocus: true, name: "email" }, {}, {})}
+    <div class="text-right">${validate_component(Button, "Button").$$render($$result, { loading: form.processing }, {}, {
+              default: () => {
+                return `Email Password Reset Link`;
+              }
+            })}</div>`;
+          }
+        }
+      )}`;
+    }
+  })}`;
 });
+const __vite_glob_0_1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: ForgotPassword
+}, Symbol.toStringTag, { value: "Module" }));
+const Checkbox = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let disabled;
+  let checked;
+  let $$restProps = compute_rest_props($$props, []);
+  let $form, $$unsubscribe_form;
+  let randomId = Math.random().toString(36).substring(2, 9);
+  let { computedName, computedLabel, id: id2 } = useInput($$props);
+  const form = getContext("form");
+  $$unsubscribe_form = subscribe(form, (value2) => $form = value2);
+  disabled = $$restProps.disabled;
+  checked = $form[computedName];
+  $$unsubscribe_form();
+  return `<label${add_attribute("class", clsx$1("flex gap-x-3 items-center dark:text-slate-3 cursor-pointer", disabled && "op-50 pointer-events-none"), 0)}${add_attribute("for", randomId, 0)}><input${spread(
+    [
+      escape_object($$restProps),
+      { class: "opacity-0 absolute peer" },
+      { id: escape_attribute_value(randomId) },
+      {
+        name: escape_attribute_value(computedName)
+      },
+      { type: "checkbox" }
+    ],
+    {}
+  )}${add_attribute("checked", $form[computedName], 1)}>
+
+  <span${add_attribute("class", clsx$1("block h-5 w-5 peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:dark:ring-indigo-9 dark:border-slate-6 border flex-shrink-0 flex items-center justify-center transition duration-200 ease-[cubic-bezier(0.4, 0, 0.2, 1)] rounded", !checked && !disabled && "border-gray-300", checked && !disabled && "bg-primary  border-primary", disabled && "bg-gray-200 dark:bg-gray-9  border-gray-200 "), 0)}><i class="${"i-bx-check text-white transition duration-150 delay-100 ease-[cubic-bezier(0.57, 1.48, 0.87, 1.09] " + escape$1(checked ? "scale-full" : " scale-0", true)}"></i></span>
+  <span class="text-sm">${escape$1(computedLabel)}</span></label>`;
+});
+const Login = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { canResetPassword } = $$props;
+  let { status } = $$props;
+  const route2 = window.route;
+  if ($$props.canResetPassword === void 0 && $$bindings.canResetPassword && canResetPassword !== void 0)
+    $$bindings.canResetPassword(canResetPassword);
+  if ($$props.status === void 0 && $$bindings.status && status !== void 0)
+    $$bindings.status(status);
+  return `${$$result.head += `${$$result.title = `<title>Log in</title>`, ""}`, ""}
+
+${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
+    default: () => {
+      return `${status ? `<div class="mb-4 font-medium text-sm text-green-600">${escape$1(status)}</div>` : ``}
+  ${validate_component(Form, "Form").$$render(
+        $$result,
+        {
+          initialValues: {
+            email: null,
+            password: null,
+            remember: false
+          },
+          url: route2("login")
+        },
+        {},
+        {
+          default: ({ form }) => {
+            return `${validate_component(Field, "Field").$$render($$result, { autofocus: true, name: "email" }, {}, {})}
+    ${validate_component(Field, "Field").$$render($$result, { name: "password", type: "password" }, {}, {})}
+    <div class="flex justify-between items-center mb-7">${validate_component(Checkbox, "Checkbox").$$render($$result, { name: "remember" }, {}, {})}
+      <div>${canResetPassword ? `${validate_component(Link, "Link").$$render(
+              $$result,
+              {
+                class: "text-blue-500  text-sm",
+                href: route2("password.request")
+              },
+              {},
+              {
+                default: () => {
+                  return `Forgot Password ?`;
+                }
+              }
+            )}` : ``}</div></div>
+    ${validate_component(Button, "Button").$$render(
+              $$result,
+              {
+                class: "!w-full !bg-blue-600",
+                loading: form.processing
+              },
+              {},
+              {
+                default: () => {
+                  return `Login`;
+                }
+              }
+            )}`;
+          }
+        }
+      )}`;
+    }
+  })}`;
+});
+const __vite_glob_0_2 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Login
+}, Symbol.toStringTag, { value: "Module" }));
+const Register = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `${$$result.head += `${$$result.title = `<title>Register</title>`, ""}`, ""}
+
+${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
+    default: () => {
+      return `${validate_component(Form, "Form").$$render(
+        $$result,
+        {
+          initialValues: {
+            name: "",
+            email: "",
+            password: "",
+            password_confirmation: ""
+          }
+        },
+        {},
+        {
+          default: ({ form }) => {
+            return `${validate_component(Field, "Field").$$render($$result, { name: "name" }, {}, {})}
+    ${validate_component(Field, "Field").$$render($$result, { name: "email" }, {}, {})}
+    ${validate_component(Field, "Field").$$render($$result, { name: "password", type: "password" }, {}, {})}
+    ${validate_component(Field, "Field").$$render(
+              $$result,
+              {
+                name: "password_confirmation",
+                type: "password"
+              },
+              {},
+              {}
+            )}
+    <div class="flex items-center justify-end mt-4"><a class="underline text-sm text-gray-600 hover:text-gray-900" href="/login">Already registered?
+      </a>
+
+      ${validate_component(Button, "Button").$$render($$result, { class: "ml-4", disabled: form.processing }, {}, {
+              default: () => {
+                return `Register
+      `;
+              }
+            })}</div>`;
+          }
+        }
+      )}`;
+    }
+  })}`;
+});
+const __vite_glob_0_3 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Register
+}, Symbol.toStringTag, { value: "Module" }));
+const ResetPassword = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { email } = $$props;
+  let { token } = $$props;
+  if ($$props.email === void 0 && $$bindings.email && email !== void 0)
+    $$bindings.email(email);
+  if ($$props.token === void 0 && $$bindings.token && token !== void 0)
+    $$bindings.token(token);
+  return `${$$result.head += `${$$result.title = `<title>Reset Password</title>`, ""}`, ""}
+
+${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
+    default: () => {
+      return `${validate_component(Form, "Form").$$render(
+        $$result,
+        {
+          initialValues: {
+            token,
+            email,
+            password: null,
+            password_confirmation: null
+          },
+          url: "/password-reset"
+        },
+        {},
+        {
+          default: ({ form }) => {
+            return `${validate_component(Field, "Field").$$render(
+              $$result,
+              {
+                disabled: true,
+                name: "token",
+                value: token
+              },
+              {},
+              {}
+            )}
+    ${validate_component(Field, "Field").$$render($$result, { disabled: true, name: "email" }, {}, {})}
+    ${validate_component(Field, "Field").$$render($$result, { name: "password", type: "password" }, {}, {})}
+    ${validate_component(Field, "Field").$$render(
+              $$result,
+              {
+                label: "Confirm Password",
+                name: "password_confirmation",
+                type: "password"
+              },
+              {},
+              {}
+            )}
+    ${validate_component(Button, "Button").$$render($$result, { loading: form.processing }, {}, {
+              default: () => {
+                return `Reset Password`;
+              }
+            })}`;
+          }
+        }
+      )}`;
+    }
+  })}`;
+});
+const __vite_glob_0_4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: ResetPassword
+}, Symbol.toStringTag, { value: "Module" }));
+const VerifyEmail = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let verificationLinkSent;
+  let { status } = $$props;
+  if ($$props.status === void 0 && $$bindings.status && status !== void 0)
+    $$bindings.status(status);
+  verificationLinkSent = status === "verification-link-sent";
+  return `${$$result.head += `${$$result.title = `<title>Email Verification</title>`, ""}`, ""}
+
+${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
+    default: () => {
+      return `<div class="mb-4 text-sm text-gray-600">Thanks for signing up! Before getting started, could you verify your email address by clicking
+    on the link we just emailed to you? If you didn&#39;t receive the email, we will gladly send you
+    another.
+  </div>
+
+  ${verificationLinkSent ? `<div class="mb-4 font-medium text-sm text-green-600">A new verification link has been sent to the email address you provided during registration.
+    </div>` : ``}
+
+  ${validate_component(Form, "Form").$$render(
+        $$result,
+        {
+          as: true,
+          class: "flex justify-between items-center mt-10",
+          url: route$1("verification.send")
+        },
+        {},
+        {
+          default: ({ form }) => {
+            return `${validate_component(Link, "Link").$$render(
+              $$result,
+              {
+                as: "button",
+                class: "underline text-sm text-gray-600 hover:text-gray-900",
+                href: route$1("logout"),
+                method: "post"
+              },
+              {},
+              {
+                default: () => {
+                  return `Log Out
+    `;
+                }
+              }
+            )}
+    ${validate_component(Button, "Button").$$render($$result, { disabled: form.processing }, {}, {
+              default: () => {
+                return `Resend Verification Email
+    `;
+              }
+            })}`;
+          }
+        }
+      )}`;
+    }
+  })}`;
+});
+const __vite_glob_0_5 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: VerifyEmail
+}, Symbol.toStringTag, { value: "Module" }));
+const Dashboard = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { auth } = $$props;
+  if ($$props.auth === void 0 && $$bindings.auth && auth !== void 0)
+    $$bindings.auth(auth);
+  return `${$$result.head += `${$$result.title = `<title>Dashboard</title>`, ""}`, ""}
+
+<div class="flex flex-col gap-y-4 justify-center items-center"><h2>Welcome , ${escape$1(auth.name)}</h2>
+  <p class="bg-green/20 text-green-500 inline-block rounded p1 text-sm px-3">${escape$1(auth.email)}</p></div>`;
+});
+const __vite_glob_0_6 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Dashboard
+}, Symbol.toStringTag, { value: "Module" }));
+const DatatableFooter = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  var _a;
+  let nav;
+  let $pagination, $$unsubscribe_pagination;
+  const { pagination, goToNextPage, goToPrevPage, props, updatePerPage } = getContext("datatable");
+  $$unsubscribe_pagination = subscribe(pagination, (value2) => $pagination = value2);
+  nav = [
+    {
+      icon: "i-carbon-arrow-left",
+      action: goToPrevPage,
+      disabled: $pagination.page === 1
+    },
+    {
+      icon: "i-carbon-arrow-right",
+      action: goToNextPage,
+      disabled: $pagination.page === $pagination.lastPage
+    }
+  ];
+  $$unsubscribe_pagination();
+  return `<footer class="flex justify-between mt-5 ">${Array.isArray((_a = props.perPage) == null ? void 0 : _a.options) ? `<select class="px-2 rounded dark:bg-slate-9">${each(props.perPage.options, (option) => {
+    return `<option${add_attribute("value", option, 0)}>${escape$1(option)}</option>`;
+  })}</select>` : ``}
+
+  <div class="flex gap-x-2 items-center"><div class="mx-2">${escape$1($pagination.from ?? 0)} - ${escape$1($pagination.to ?? $pagination.total)} of
+      ${escape$1($pagination.total)}</div>
+    ${each(nav, (item) => {
+    return `<button${add_attribute("class", clsx$1("rounded bg-slate-2 flex items-center p2 dark:bg-slate-7", item.disabled && "op20 pointer-events-none"), 0)}><i${add_attribute("class", item.icon, 0)}></i>
+      </button>`;
+  })}</div></footer>`;
+});
+const DatatableResizableHandler = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  return `<div class="dt-resize-handle absolute top-0 -right-2.7 z-500 cursor-col-resize group-hover:block op50 w-5 h-full"><div class="i-mdi-resize-horizontal"></div></div>`;
+});
+const DatatableHeader = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $pagination, $$unsubscribe_pagination;
+  let { props, pagination, sort } = getContext("datatable");
+  $$unsubscribe_pagination = subscribe(pagination, (value2) => $pagination = value2);
+  $$unsubscribe_pagination();
+  return `<thead><tr>${props.headers.length ? each(props.headers, (header2) => {
+    return `<th scope="col"${add_attribute("data-width", header2.width, 0)} class="relative group"><button style="${"text-align: " + escape$1(header2.align ?? "left", true)}"${add_attribute("class", clsx$1("relative w-full ", !header2.sortable && "pointer-events-none", header2.align === "center" && "-ml-1"), 0)}>${props.headersResizable ? `${validate_component(DatatableResizableHandler, "DatatableResizableHandler").$$render($$result, {}, {}, {})}` : ``}
+      ${escape$1(header2.label)}
+        ${$pagination.sortDirection !== null && $pagination.sortBy === header2.value ? `<div class="absolute inset-0 flex items-center justify-end"><i class="${[
+      "i-carbon-arrow-up text-slate-4 dark:text-slate-5",
+      ($pagination.sortDirection === "desc" ? "rotate-180" : "") + " " + ($pagination.sortDirection !== "asc" ? "rotate-0" : "")
+    ].join(" ").trim()}"></i>
+        </div>` : ``}</button>
+    </th>`;
+  }) : `<th>No headers</th>`}</tr></thead>`;
+});
+const DatatableBody = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $items, $$unsubscribe_items;
+  let { items, props } = getContext("datatable");
+  $$unsubscribe_items = subscribe(items, (value2) => $items = value2);
+  $$unsubscribe_items();
+  return `<tbody>${each($items, (row2, index2) => {
+    return `<tr>${each(props.headers, (header2) => {
+      return `<td style="${"text-align: " + escape$1(header2.align ?? "left", true)}">${slots.default ? slots.default({
+        row: row2,
+        value: header2.format ? header2.format(row2[header2.value]) : row2[header2.value],
+        header: header2,
+        index: index2
+      }) : `
+          ${escape$1(header2.format ? header2.format(row2[header2.value]) : row2[header2.value])}
+        `}
+      </td>`;
+    })}
+  </tr>`;
+  })}</tbody>`;
+});
+const useDatatable = (props, dispatch) => {
+  var _a;
+  const reactiveItems = writable(props.items);
+  const perPage = typeof props.perPage === "string" || typeof props.perPage === "number" ? Number(props.perPage) : ((_a = props.perPage) == null ? void 0 : _a.default) ?? 10;
+  console.log(perPage);
+  const pagination = writable(
+    props.pagination ?? {
+      page: 1,
+      perPage,
+      sortBy: "",
+      sortDirection: null,
+      total: props.items.length,
+      from: 1,
+      to: 10,
+      lastPage: Math.ceil(props.items.length / 10)
+    }
+  );
+  (() => {
+    updatePerPage(perPage);
+  })();
+  const items = derived([pagination, reactiveItems], ($values) => {
+    if (props.pagination)
+      return $values[1];
+    const [pagination2, reactiveItems2] = $values;
+    const { page, perPage: perPage2 } = pagination2;
+    const start = (page - 1) * perPage2;
+    const end = start + perPage2;
+    const rows = reactiveItems2.slice(start, end);
+    if (pagination2.sortBy && pagination2.sortDirection) {
+      return rows.sort(
+        (a, b) => {
+          if (a[pagination2.sortBy] > b[pagination2.sortBy]) {
+            return pagination2.sortDirection === "asc" ? 1 : -1;
+          }
+          if (a[pagination2.sortBy] < b[pagination2.sortBy]) {
+            return pagination2.sortDirection === "asc" ? -1 : 1;
+          }
+          return 0;
+        }
+      );
+    }
+    return rows;
+  });
+  function goToNextPage() {
+    pagination.update((pg) => {
+      if (pg.page < Math.ceil(pg.total / pg.perPage)) {
+        pg.page += 1;
+        pg.from = (pg.page - 1) * pg.perPage + 1;
+        pg.to = Math.min(pg.total, pg.page * pg.perPage);
+        console.log(pg);
+        dispatchPaginationUpdated(pg);
+      }
+      return pg;
+    });
+  }
+  function dispatchPaginationUpdated(pagination2) {
+    if (props.pagination) {
+      dispatch("paginationUpdated", pagination2);
+    }
+  }
+  function goToPrevPage() {
+    pagination.update((pg) => {
+      if (pg.page > 1) {
+        pg.page -= 1;
+        pg.from = (pg.page - 1) * pg.perPage + 1;
+        pg.to = pg.page * pg.perPage;
+        dispatchPaginationUpdated(pg);
+      }
+      return pg;
+    });
+  }
+  function updatePerPage(newPerPage) {
+    pagination.update((pg) => {
+      pg.perPage = newPerPage;
+      pg.page = 1;
+      pg.from = 1;
+      pg.to = Math.min(pg.total, newPerPage);
+      pg.lastPage = Math.ceil(pg.total / newPerPage);
+      dispatchPaginationUpdated(pg);
+      return pg;
+    });
+  }
+  function updateTotal(newTotal) {
+    pagination.update((pg) => {
+      pg.total = newTotal;
+      pg.lastPage = Math.ceil(newTotal / pg.perPage);
+      return pg;
+    });
+  }
+  const sort = (header2) => {
+    pagination.update((pg) => {
+      if (header2.sortable) {
+        if (pg.sortBy === header2.value) {
+          pg.sortDirection = pg.sortDirection === null ? "desc" : pg.sortDirection === "desc" ? "asc" : null;
+        } else {
+          pg.sortBy = header2.value;
+          pg.sortDirection = "desc";
+        }
+      }
+      dispatchPaginationUpdated(pg);
+      return pg;
+    });
+  };
+  return {
+    pagination,
+    goToNextPage,
+    goToPrevPage,
+    updatePerPage,
+    sort,
+    items,
+    reactiveItems,
+    updateTotal
+  };
+};
+const Spinner_svelte_svelte_type_style_lang = "";
+const css$2 = {
+  code: ":root{--loader-color:#000}.loader.svelte-f5pohe{text-indent:-9999em;overflow:hidden;width:1em;height:1em;border-radius:50%;margin:0.9em auto;position:relative;-webkit-animation:svelte-f5pohe-load6 1.7s infinite ease;animation:svelte-f5pohe-load6 1.7s infinite ease}@-webkit-keyframes svelte-f5pohe-load6{0%{-webkit-transform:rotate(0deg);transform:rotate(0deg);box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.11em -0.83em 0 -0.42em var(--loader-color), -0.11em -0.83em 0 -0.44em var(--loader-color), -0.11em -0.83em 0 -0.46em var(--loader-color), -0.11em -0.83em 0 -0.477em var(--loader-color)}5%,95%{box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.11em -0.83em 0 -0.42em var(--loader-color), -0.11em -0.83em 0 -0.44em var(--loader-color), -0.11em -0.83em 0 -0.46em var(--loader-color), -0.11em -0.83em 0 -0.477em var(--loader-color)}30%{box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.51em -0.66em 0 -0.42em var(--loader-color), -0.75em -0.36em 0 -0.44em var(--loader-color), -0.83em -0.03em 0 -0.46em var(--loader-color), -0.81em 0.21em 0 -0.477em var(--loader-color)}55%{box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.29em -0.78em 0 -0.42em var(--loader-color), -0.43em -0.72em 0 -0.44em var(--loader-color), -0.52em -0.65em 0 -0.46em var(--loader-color), -0.57em -0.61em 0 -0.477em var(--loader-color)}100%{-webkit-transform:rotate(360deg);transform:rotate(360deg);box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.11em -0.83em 0 -0.42em var(--loader-color), -0.11em -0.83em 0 -0.44em var(--loader-color), -0.11em -0.83em 0 -0.46em var(--loader-color), -0.11em -0.83em 0 -0.477em var(--loader-color)}}@keyframes svelte-f5pohe-load6{0%{-webkit-transform:rotate(0deg);transform:rotate(0deg);box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.11em -0.83em 0 -0.42em var(--loader-color), -0.11em -0.83em 0 -0.44em var(--loader-color), -0.11em -0.83em 0 -0.46em var(--loader-color), -0.11em -0.83em 0 -0.477em var(--loader-color)}5%,95%{box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.11em -0.83em 0 -0.42em var(--loader-color), -0.11em -0.83em 0 -0.44em var(--loader-color), -0.11em -0.83em 0 -0.46em var(--loader-color), -0.11em -0.83em 0 -0.477em var(--loader-color)}30%{box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.51em -0.66em 0 -0.42em var(--loader-color), -0.75em -0.36em 0 -0.44em var(--loader-color), -0.83em -0.03em 0 -0.46em var(--loader-color), -0.81em 0.21em 0 -0.477em var(--loader-color)}55%{box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.29em -0.78em 0 -0.42em var(--loader-color), -0.43em -0.72em 0 -0.44em var(--loader-color), -0.52em -0.65em 0 -0.46em var(--loader-color), -0.57em -0.61em 0 -0.477em var(--loader-color)}100%{-webkit-transform:rotate(360deg);transform:rotate(360deg);box-shadow:-0.11em -0.83em 0 -0.4em var(--loader-color), -0.11em -0.83em 0 -0.42em var(--loader-color), -0.11em -0.83em 0 -0.44em var(--loader-color), -0.11em -0.83em 0 -0.46em var(--loader-color), -0.11em -0.83em 0 -0.477em var(--loader-color)}}",
+  map: null
+};
+const Spinner = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { size = 30 } = $$props;
+  let { color = "white" } = $$props;
+  if ($$props.size === void 0 && $$bindings.size && size !== void 0)
+    $$bindings.size(size);
+  if ($$props.color === void 0 && $$bindings.color && color !== void 0)
+    $$bindings.color(color);
+  $$result.css.add(css$2);
+  return `<div class="loader svelte-f5pohe" style="${"font-size: " + escape$1(size, true) + "px; --loader-color: " + escape$1(color, true) + ";"}">Loading...</div>`;
+});
+const TableCards = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let $items, $$unsubscribe_items;
+  let { items, props } = getContext("datatable");
+  $$unsubscribe_items = subscribe(items, (value2) => $items = value2);
+  $$unsubscribe_items();
+  return `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:hidden ">${each($items, (row2, index2) => {
+    return `<div class="border border-gray-2 dark:border-slate-7 p-4 rounded space-y-4">${each(props.headers, (header2) => {
+      return `<div>${escape$1(header2.label)} :
+          ${slots.default ? slots.default({
+        row: row2,
+        value: header2.format ? header2.format(row2[header2.value]) : row2[header2.value],
+        header: header2,
+        index: index2
+      }) : `
+            ${escape$1(header2.format ? header2.format(row2[header2.value]) : row2[header2.value])}
+          `}
+        </div>`;
+    })}
+    </div>`;
+  })}</div>`;
+});
+const Datatable_svelte_svelte_type_style_lang = "";
+const css$1 = {
+  code: ".datatable.svelte-1s86ye6 table.svelte-1s86ye6{--at-apply:grid overflow-x-auto text-left relative w-full lt-lg:hidden}.datatable.svelte-1s86ye6 table.svelte-1s86ye6 thead,.datatable.svelte-1s86ye6 table.svelte-1s86ye6 tbody,.datatable.svelte-1s86ye6 table.svelte-1s86ye6 tr{--at-apply:contents}.datatable.svelte-1s86ye6 table.svelte-1s86ye6 th,.datatable.svelte-1s86ye6 table.svelte-1s86ye6 td{--at-apply:border-b border-slate-200 p-3 break-words overflow-hidden dark:border-slate-7}.datatable.svelte-1s86ye6 table.svelte-1s86ye6 th{--at-apply:border-t border-r }.datatable.svelte-1s86ye6 table.svelte-1s86ye6 th:first-child{--at-apply:border-l }.datatable.svelte-1s86ye6 table.svelte-1s86ye6 td{--at-apply:border-r }.datatable.svelte-1s86ye6 table.svelte-1s86ye6 td:first-child{--at-apply:border-l }",
+  map: null
+};
+const Datatable = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { headers } = $$props;
+  let { items } = $$props;
+  let { noWrap } = $$props;
+  let { loading } = $$props;
+  let { headersDraggable } = $$props;
+  let { headersResizable } = $$props;
+  let { pagination = {} } = $$props;
+  let { perPage } = $$props;
+  const dispatch = createEventDispatcher();
+  const datatable = useDatatable($$props, dispatch);
+  setContext("datatable", { ...datatable, props: $$props });
+  if ($$props.headers === void 0 && $$bindings.headers && headers !== void 0)
+    $$bindings.headers(headers);
+  if ($$props.items === void 0 && $$bindings.items && items !== void 0)
+    $$bindings.items(items);
+  if ($$props.noWrap === void 0 && $$bindings.noWrap && noWrap !== void 0)
+    $$bindings.noWrap(noWrap);
+  if ($$props.loading === void 0 && $$bindings.loading && loading !== void 0)
+    $$bindings.loading(loading);
+  if ($$props.headersDraggable === void 0 && $$bindings.headersDraggable && headersDraggable !== void 0)
+    $$bindings.headersDraggable(headersDraggable);
+  if ($$props.headersResizable === void 0 && $$bindings.headersResizable && headersResizable !== void 0)
+    $$bindings.headersResizable(headersResizable);
+  if ($$props.pagination === void 0 && $$bindings.pagination && pagination !== void 0)
+    $$bindings.pagination(pagination);
+  if ($$props.perPage === void 0 && $$bindings.perPage && perPage !== void 0)
+    $$bindings.perPage(perPage);
+  $$result.css.add(css$1);
+  {
+    {
+      datatable.reactiveItems.update(() => items);
+      datatable.updateTotal((pagination == null ? void 0 : pagination.total) ?? items.length);
+    }
+  }
+  return `<div class="datatable svelte-1s86ye6">${validate_component(TableCards, "TableCards").$$render($$result, {}, {}, {
+    default: () => {
+      return `${slots.default ? slots.default({
+        header,
+        index,
+        perPage: "4",
+        row,
+        slot: "default",
+        value
+      }) : `
+      ${escape$1(value)}
+    `}`;
+    }
+  })}
+  <table class="svelte-1s86ye6">${loading ? `<div class="absolute inset-0 bg-transparent dark:bg-slate-8/50 flex justify-center items-center z-50"><div>${validate_component(Spinner, "Spinner").$$render($$result, { color: "black" }, {}, {})}</div></div>` : ``}
+    ${validate_component(DatatableHeader, "DatatableHeader").$$render($$result, {}, {}, {})}
+    ${validate_component(DatatableBody, "DatatableBody").$$render($$result, {}, {}, {
+    default: () => {
+      return `${slots.default ? slots.default({
+        header,
+        index,
+        perPage: "4",
+        row,
+        slot: "default",
+        value
+      }) : `
+        ${escape$1(value)}
+      `}`;
+    }
+  })}</table>
+  ${items.length ? `${validate_component(DatatableFooter, "DatatableFooter").$$render($$result, {}, {}, {})}` : `<div class="p-4 text-center text-slate-500 dark:text-slate-400">No data available
+    </div>`}
+
+</div>`;
+});
+const InertiaDatatable = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { items } = $$props;
+  let loading = false;
+  let { headers } = $$props;
+  let { routeName } = $$props;
+  let pagination = {};
+  if ($$props.items === void 0 && $$bindings.items && items !== void 0)
+    $$bindings.items(items);
+  if ($$props.headers === void 0 && $$bindings.headers && headers !== void 0)
+    $$bindings.headers(headers);
+  if ($$props.routeName === void 0 && $$bindings.routeName && routeName !== void 0)
+    $$bindings.routeName(routeName);
+  return `${validate_component(Datatable, "Datatable").$$render(
+    $$result,
+    {
+      headers,
+      items: items.data,
+      loading,
+      noWrap: true,
+      pagination,
+      perPage: {
+        default: 10,
+        options: [4, 10, 20, 30, 40, 50]
+      }
+    },
+    {},
+    {
+      default: ({ header: header2, index: index2, row: row2 }) => {
+        return `${slots.default ? slots.default({
+          header: header2,
+          index: index2,
+          row: row2,
+          slot: "default",
+          value
+        }) : `
+
+    ${escape$1(value)}
+  `}`;
+      }
+    }
+  )}`;
+});
+const Profile = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { users } = $$props;
+  let headers = [
+    {
+      label: "Index",
+      value: "index",
+      width: "90px",
+      align: "center"
+    },
+    {
+      label: "Name",
+      value: "name",
+      width: "300px",
+      sortable: true
+    },
+    { label: "Email", value: "email" },
+    {
+      label: "Created At",
+      value: "created_at",
+      sortable: true,
+      format: (created_at) => new Date(created_at).toLocaleString()
+    }
+  ];
+  if ($$props.users === void 0 && $$bindings.users && users !== void 0)
+    $$bindings.users(users);
+  return `<button class="mb-5">Plus
+</button>
+
+${validate_component(InertiaDatatable, "InertiaDatatable").$$render(
+    $$result,
+    {
+      headers,
+      items: users,
+      routeName: "profile"
+    },
+    {},
+    {
+      default: ({ header: header2, index: index2, row: row2 }) => {
+        return `${header2.value === "index" ? `${escape$1(index2 + 1)}` : `${escape$1(row2[header2.value])}`}`;
+      }
+    }
+  )}`;
+});
+const __vite_glob_0_7 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Profile
+}, Symbol.toStringTag, { value: "Module" }));
 var State;
 (function(State2) {
   State2[State2["Open"] = 0] = "Open";
@@ -3948,12 +4802,12 @@ const OPEN_CLOSED_CONTEXT_NAME = "headlessui-open-closed-context";
 function useOpenClosed() {
   return getContext(OPEN_CLOSED_CONTEXT_NAME);
 }
-function match(value, lookup, ...args) {
-  if (value in lookup) {
-    let returnValue = lookup[value];
+function match(value2, lookup, ...args) {
+  if (value2 in lookup) {
+    let returnValue = lookup[value2];
     return typeof returnValue === "function" ? returnValue(...args) : returnValue;
   }
-  let error = new Error(`Tried to handle "${value}" but there is no handler defined. Only defined handlers are: ${Object.keys(lookup).map((key) => `"${key}"`).join(", ")}.`);
+  let error = new Error(`Tried to handle "${value2}" but there is no handler defined. Only defined handlers are: ${Object.keys(lookup).map((key) => `"${key}"`).join(", ")}.`);
   if (Error.captureStackTrace)
     Error.captureStackTrace(error, match);
   throw error;
@@ -4254,12 +5108,12 @@ const DescriptionProvider = create_ssr_component(($$result, $$props, $$bindings,
     props: $$restProps,
     register
   });
-  $$unsubscribe_contextStore = subscribe(contextStore, (value) => $contextStore = value);
+  $$unsubscribe_contextStore = subscribe(contextStore, (value2) => $contextStore = value2);
   setContext(DESCRIPTION_CONTEXT_NAME, contextStore);
-  function register(value) {
-    descriptionIds = [...descriptionIds, value];
+  function register(value2) {
+    descriptionIds = [...descriptionIds, value2];
     return () => {
-      descriptionIds = descriptionIds.filter((descriptionId) => descriptionId !== value);
+      descriptionIds = descriptionIds.filter((descriptionId) => descriptionId !== value2);
     };
   }
   if ($$props.name === void 0 && $$bindings.name && name !== void 0)
@@ -4310,9 +5164,9 @@ const Portal = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let $groupTarget, $$unsubscribe_groupTarget;
   let $forceInRoot, $$unsubscribe_forceInRoot;
   let forceInRoot = usePortalRoot();
-  $$unsubscribe_forceInRoot = subscribe(forceInRoot, (value) => $forceInRoot = value);
+  $$unsubscribe_forceInRoot = subscribe(forceInRoot, (value2) => $forceInRoot = value2);
   let groupTarget = usePortalGroupContext();
-  $$unsubscribe_groupTarget = subscribe(groupTarget, (value) => $groupTarget = value);
+  $$unsubscribe_groupTarget = subscribe(groupTarget, (value2) => $groupTarget = value2);
   (() => {
     if (!(forceInRoot && $forceInRoot) && groupTarget !== void 0 && $groupTarget !== null)
       return $groupTarget;
@@ -4348,9 +5202,9 @@ function forwardEventsBuilder(component, except = []) {
         const callbacks = component.$$.callbacks[eventType] || (component.$$.callbacks[eventType] = []);
         callbacks.push(callback);
         return () => {
-          const index = callbacks.indexOf(callback);
-          if (index !== -1)
-            callbacks.splice(index, 1);
+          const index2 = callbacks.indexOf(callback);
+          if (index2 !== -1)
+            callbacks.splice(index2, 1);
         };
       }
       if (typeof exception === "object" && exception["name"] === eventType) {
@@ -4908,7 +5762,7 @@ const Dialog = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   const dispatch = createEventDispatcher();
   let containers = /* @__PURE__ */ new Set();
   let openClosedState = useOpenClosed();
-  $$unsubscribe_openClosedState = subscribe(openClosedState, (value) => $openClosedState = value);
+  $$unsubscribe_openClosedState = subscribe(openClosedState, (value2) => $openClosedState = value2);
   let internalDialogRef = null;
   const id2 = `headlessui-dialog-${useId()}`;
   onDestroy(() => {
@@ -4929,7 +5783,7 @@ const Dialog = create_ssr_component(($$result, $$props, $$bindings, slots) => {
       dispatch("close", false);
     }
   });
-  $$unsubscribe_api = subscribe(api, (value) => $api = value);
+  $$unsubscribe_api = subscribe(api, (value2) => $api = value2);
   setContext(DIALOG_CONTEXT_NAME, api);
   onDestroy(() => {
     if (_cleanupScrollLock) {
@@ -5111,7 +5965,7 @@ const DialogOverlay = create_ssr_component(($$result, $$props, $$bindings, slots
   let { use = [] } = $$props;
   const forwardEvents = forwardEventsBuilder(get_current_component());
   let api = useDialogContext("DialogOverlay");
-  $$unsubscribe_api = subscribe(api, (value) => $api = value);
+  $$unsubscribe_api = subscribe(api, (value2) => $api = value2);
   let id2 = `headlessui-dialog-overlay-${useId()}`;
   if ($$props.as === void 0 && $$bindings.as && as !== void 0)
     $$bindings.as(as);
@@ -5167,27 +6021,12 @@ var TreeStates;
   TreeStates2["Visible"] = "visible";
   TreeStates2["Hidden"] = "hidden";
 })(TreeStates || (TreeStates = {}));
-const Drawer = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+const Dialog_1 = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let isOpen = false;
   const close = () => isOpen = false;
   const open = () => isOpen = true;
-  let { position = "right" } = $$props;
-  let { width = "20rem" } = $$props;
-  let { height = "20rem" } = $$props;
-  const positionClass = {
-    right: "top-0 right-0 ",
-    left: "top-0 left-0 ",
-    top: "top-0  ",
-    bottom: "bottom-0 "
-  };
   if ($$props.close === void 0 && $$bindings.close && close !== void 0)
     $$bindings.close(close);
-  if ($$props.position === void 0 && $$bindings.position && position !== void 0)
-    $$bindings.position(position);
-  if ($$props.width === void 0 && $$bindings.width && width !== void 0)
-    $$bindings.width(width);
-  if ($$props.height === void 0 && $$bindings.height && height !== void 0)
-    $$bindings.height(height);
   return `${slots.button ? slots.button({ open, close }) : ``}
 ${isOpen ? `${validate_component(Dialog, "Dialog").$$render($$result, { open: isOpen, static: true }, {}, {
     default: () => {
@@ -5199,195 +6038,269 @@ ${isOpen ? `${validate_component(Dialog, "Dialog").$$render($$result, { open: is
         {},
         {}
       )}</div>
-    <div class="${"fixed " + escape$1(positionClass[position], true) + " h-screen z-11 p-6 text-left align-middle transition-all transform bg-white dark:bg-slate-7 shadow-xl"}"${add_styles({
-        "height": position === "top" || position === "bottom" ? height : "100%",
-        "width": position === "left" || position === "right" ? width : "100%"
-      })}>${slots.default ? slots.default({ open, close }) : ``}</div>`;
+    <div class="fixed md:w-120 lt-md:w-90% top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-11 p-6 my-8 text-left align-middle transition-all transform bg-white dark:bg-slate-7 shadow-xl rounded-2xl ">${slots.default ? slots.default({ open, close }) : ``}</div>`;
     }
   })}` : ``}`;
 });
-const Button = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let classes;
-  let $$restProps = compute_rest_props($$props, ["color", "size", "loading", "icon"]);
-  let $$slots = compute_slots(slots);
-  let { color = "btn-blue" } = $$props;
-  let { size = "md" } = $$props;
-  let { loading = false } = $$props;
-  let { icon = null } = $$props;
-  const sizeClasses = {
-    xs: "px-3 py-2 text-xs",
-    sm: "px-4 py-2 text-sm",
-    md: "px-5 py-2.5 text-sm",
-    lg: "px-5 py-3 text-base",
-    xl: "px-6 py-3.5 text-base"
-  };
-  const sizeWithOnlyIconClasses = {
-    xs: "p-1  text-xs",
-    sm: "p-2  text-sm",
-    md: "p-3  text-sm",
-    lg: "p-5  text-base",
-    xl: "p-6 text-base"
-  };
-  if ($$props.color === void 0 && $$bindings.color && color !== void 0)
-    $$bindings.color(color);
-  if ($$props.size === void 0 && $$bindings.size && size !== void 0)
-    $$bindings.size(size);
-  if ($$props.loading === void 0 && $$bindings.loading && loading !== void 0)
-    $$bindings.loading(loading);
-  if ($$props.icon === void 0 && $$bindings.icon && icon !== void 0)
-    $$bindings.icon(icon);
-  classes = clsx$1("rounded-lg  relative  active:scale-95 duration-300 transform transition-all ", icon !== null && !$$slots.default && sizeWithOnlyIconClasses[size], $$slots.default && sizeClasses[size], color, ($$props.disabled || loading) && "pointer-events-none ", $$props.class);
-  return `<button${spread(
-    [
-      escape_object($$restProps),
-      { class: escape_attribute_value(classes) },
-      {
-        disabled: $$props.disabled || loading || null
+const UserForm = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { initialValues = {
+    name: "",
+    email: "",
+    password: "",
+    password_confirmation: ""
+  } } = $$props;
+  const dispatch = createEventDispatcher();
+  const config = ({ reset }) => ({
+    onSuccess: (page) => {
+      console.log(page.props.data.user);
+      dispatch("success", page.props.data.user);
+      reset();
+    }
+  });
+  if ($$props.initialValues === void 0 && $$bindings.initialValues && initialValues !== void 0)
+    $$bindings.initialValues(initialValues);
+  return `${validate_component(Form, "Form").$$render(
+    $$result,
+    {
+      config,
+      initialValues,
+      url: route$1("users.store")
+    },
+    {},
+    {
+      default: ({ loading }) => {
+        return `<h1 class="font-bold mb-3 ">Create an account</h1>
+
+  ${validate_component(Field, "Field").$$render($$result, { name: "name" }, {}, {})}
+  ${validate_component(Field, "Field").$$render($$result, { name: "email" }, {}, {})}
+  ${validate_component(Field, "Field").$$render($$result, { name: "password", type: "password" }, {}, {})}
+  ${validate_component(Field, "Field").$$render(
+          $$result,
+          {
+            name: "password_confirmation",
+            type: "password"
+          },
+          {},
+          {}
+        )}
+  ${validate_component(Button, "Button").$$render($$result, { loading }, {}, {
+          default: () => {
+            return `Create User`;
+          }
+        })}
+  <button class="btn-slate-800 mt-5">Close</button>`;
       }
-    ],
-    {}
-  )}><div>${loading ? `<div class="absolute inset-0 flex justify-center items-center"><div${add_attribute("class", clsx$1("w-5 h-5 rounded-full animate-spin animate-duration-2000  border-2 border-dashed btn-spinner"), 0)}></div></div>` : ``}
-    <div${add_attribute("class", clsx$1(icon && "flex justify-between items-center gap-x-3", loading && "op-0"), 0)}>${icon ? `<div${add_attribute("class", clsx$1(icon), 0)}></div>` : ``}
-      ${slots.default ? slots.default({}) : ``}</div></div></button>`;
+    }
+  )}`;
 });
-const SideMenu = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let { activeRoute } = $$props;
-  let { items } = $$props;
-  if ($$props.activeRoute === void 0 && $$bindings.activeRoute && activeRoute !== void 0)
-    $$bindings.activeRoute(activeRoute);
-  if ($$props.items === void 0 && $$bindings.items && items !== void 0)
-    $$bindings.items(items);
-  return `${validate_component(Drawer, "Drawer").$$render($$result, { position: "right" }, {}, {
+const UpdateUserForm = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { initialValues } = $$props;
+  const dispatch = createEventDispatcher();
+  const config = ({ reset }) => ({
+    onSuccess: (page) => {
+      dispatch("success", page.props.data.user);
+      reset();
+    }
+  });
+  if ($$props.initialValues === void 0 && $$bindings.initialValues && initialValues !== void 0)
+    $$bindings.initialValues(initialValues);
+  return `<div><h1 class="font-bold mb-3 ">Update an account</h1>
+  <div><section class="w-100 mx-auto my-5">${validate_component(Form, "Form").$$render(
+    $$result,
+    {
+      config,
+      initialValues,
+      method: "patch",
+      url: route$1("users.update", { user: initialValues.id })
+    },
+    {},
+    {
+      default: ({ loading }) => {
+        return `${validate_component(Field, "Field").$$render($$result, { name: "name" }, {}, {})}
+        ${validate_component(Field, "Field").$$render($$result, { name: "email" }, {}, {})}
+        ${validate_component(Button, "Button").$$render($$result, { loading }, {}, {
+          default: () => {
+            return `Update User`;
+          }
+        })}
+        <button class="btn-slate-800 mt-5">Close</button>`;
+      }
+    }
+  )}</section></div></div>`;
+});
+const Users = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { users } = $$props;
+  let headers = [
+    {
+      label: "Index",
+      value: "index",
+      width: "90px",
+      align: "center"
+    },
+    {
+      label: "Name",
+      value: "name",
+      width: "300px",
+      sortable: true
+    },
+    { label: "Email", value: "email" },
+    {
+      label: "Created At",
+      value: "created_at",
+      sortable: true,
+      format: (created_at) => new Date(created_at).toLocaleString()
+    },
+    {
+      label: "Actions",
+      value: "actions",
+      align: "center"
+    }
+  ];
+  if ($$props.users === void 0 && $$bindings.users && users !== void 0)
+    $$bindings.users(users);
+  return `${validate_component(Dialog_1, "VDialog").$$render($$result, {}, {}, {
     button: ({ close, open }) => {
       return `${validate_component(Button, "Button").$$render(
         $$result,
         {
-          color: "transparent",
-          icon: "i-carbon-menu",
+          class: "mb-3",
+          color: "btn-light-blue",
           slot: "button"
         },
         {},
-        {}
+        {
+          default: () => {
+            return `Add User +`;
+          }
+        }
       )}`;
     },
     default: ({ close, open }) => {
-      return `${validate_component(ApplicationLogo, "ApplicationLogo").$$render(
-        $$result,
-        {
-          class: "h-14 w-14 mx-auto mb-10 dark:fill-slate-300"
-        },
-        {},
-        {}
-      )}
-  <ul class="flex flex-col gap-y-3 ">${each(items, (item, index) => {
-        return `<li class="${"flex w-full justify-between items-center gap-x-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg p-2 cursor-pointer dark:text-slate-300 dark:hover:text-slate-300 dark:hover:bg-slate-800 " + escape$1(
-          item.href.includes(activeRoute) ? "text-gray-700 bg-gray-100 dark:text-slate-300 dark:bg-slate-800" : "",
-          true
-        )}"><div class="flex gap-x-4 items-center"><i class="${escape$1(item.icon, true) + " flex-shrink-0"}"></i>
-          ${escape$1(item.name)}</div>
+      return `${validate_component(UserForm, "UserForm").$$render($$result, {}, {}, {})}`;
+    }
+  })}
 
-      </li>`;
-      })}</ul>`;
-    }
-  })}`;
-});
-const Authenticated = create_ssr_component(($$result, $$props, $$bindings, slots) => {
-  let $page, $$unsubscribe_page;
-  $$unsubscribe_page = subscribe(page, (value) => $page = value);
-  let activeRoute = $page.url;
-  let navLinks = [
-    {
-      "name": "Dashboard",
-      "href": route("dashboard"),
-      icon: "i-carbon-home"
-    },
-    {
-      name: "Users",
-      href: route("users.index"),
-      icon: "i-carbon-user"
-    }
-  ];
-  Oe.on("navigate", (event) => {
-    activeRoute = event.detail.page.url.split("?")[0];
-  });
-  $$unsubscribe_page();
-  return `${validate_component(Toast, "Toast").$$render($$result, {}, {}, {})}
-<div class="min-h-screen pt-10"><div class="container mx-auto"><header class="bg-white dark:bg-slate-8 rounded-lg p-8 w-full rounded mx-auto flex items-center justify-between"><div class="md:hidden">${validate_component(SideMenu, "SideMenu").$$render($$result, { activeRoute, items: navLinks }, {}, {})}</div>
-      <ul class="flex gap-x-4 items-center lt-md:hidden">${validate_component(ApplicationLogo, "ApplicationLogo").$$render(
+${validate_component(InertiaDatatable, "InertiaDatatable").$$render(
     $$result,
     {
-      class: "w-14 h-14  mr-7  dark:fill-slate-4"
+      headers,
+      items: users,
+      routeName: "users.index"
     },
     {},
-    {}
-  )}
-        ${each(navLinks, ({ active, href, name }) => {
-    return `<li>${validate_component(NavLink, "NavLink").$$render($$result, { href, active: href.includes(activeRoute) }, {}, {
-      default: () => {
-        return `${escape$1(name)}`;
+    {
+      default: ({ header: header2, index: index2, row: row2, value: value2 }) => {
+        return `${header2.value === "index" ? `${escape$1(index2 + 1)}` : `${header2.value === "actions" ? `<section class="space-x-2 flex justify-center">${validate_component(Dialog_1, "VDialog").$$render($$result, {}, {}, {
+          button: ({ close, open }) => {
+            return `${validate_component(Button, "Button").$$render(
+              $$result,
+              {
+                slot: "button",
+                color: "btn-light-blue",
+                icon: "i-carbon-edit"
+              },
+              {},
+              {}
+            )}`;
+          },
+          default: ({ close, open }) => {
+            return `${validate_component(UpdateUserForm, "UpdateUserForm").$$render($$result, { initialValues: row2 }, {}, {})}`;
+          }
+        })}
+      ${validate_component(Form, "Form").$$render(
+          $$result,
+          {
+            method: "delete",
+            url: route("users.destroy", { user: row2.id })
+          },
+          {},
+          {
+            default: ({ form }) => {
+              return `${validate_component(Button, "Button").$$render(
+                $$result,
+                {
+                  color: "btn-light-red",
+                  icon: "i-carbon-delete",
+                  loading: form.processing
+                },
+                {},
+                {}
+              )}`;
+            }
+          }
+        )}</section>` : `${escape$1(value2)}`}`}`;
       }
-    })}
-          </li>`;
-  })}</ul>
-      <div class="flex items-center gap-x-7">${validate_component(DarkThemeSwitcher, "DarkThemeSwitcher").$$render($$result, {}, {}, {})}
-        <button class="p2 bg-red-300/10 text-red-500/60 rounded"><div class="i-ic-round-logout"></div></button>
-        <a${add_attribute("href", route("users.index"), 0)}>${validate_component(Avatar, "Avatar").$$render($$result, { src: "https://i.pravatar.cc/300" }, {}, {})}</a></div></header>
-
-    <main class="bg-white rounded dark:bg-slate-8 dark:text-slate-3 rounded mt-5 p-6 rounded ">${slots.default ? slots.default({}) : ``}</main></div></div>`;
+    }
+  )}`;
 });
-const defaultLayout = Authenticated;
-const pagesWithoutDefaultLayout = [
-  ...getPages(/* @__PURE__ */ Object.assign({ "./pages/Auth/ConfirmPassword.svelte": () => import("./assets/ConfirmPassword-078c2d89.js"), "./pages/Auth/ForgotPassword.svelte": () => import("./assets/ForgotPassword-e52279f1.js"), "./pages/Auth/Login.svelte": () => import("./assets/Login-3841a3b5.js"), "./pages/Auth/Register.svelte": () => import("./assets/Register-dae6270c.js"), "./pages/Auth/ResetPassword.svelte": () => import("./assets/ResetPassword-7aa951ec.js"), "./pages/Auth/VerifyEmail.svelte": () => import("./assets/VerifyEmail-e2bb6474.js") })),
-  "Welcome"
-];
-createInertiaApp({
-  resolve,
-  // TODO : add types for this
-  //  @ts-ignore
-  setup({ el, App: App2, props }) {
-    new App2({ target: el, props });
-  }
-});
-async function resolve(name) {
-  let component;
-  const page2 = resolvePageComponent(
-    `./pages/${name}.svelte`,
-    /* @__PURE__ */ Object.assign({ "./pages/Auth/ConfirmPassword.svelte": () => import("./assets/ConfirmPassword-078c2d89.js"), "./pages/Auth/ForgotPassword.svelte": () => import("./assets/ForgotPassword-e52279f1.js"), "./pages/Auth/Login.svelte": () => import("./assets/Login-3841a3b5.js"), "./pages/Auth/Register.svelte": () => import("./assets/Register-dae6270c.js"), "./pages/Auth/ResetPassword.svelte": () => import("./assets/ResetPassword-7aa951ec.js"), "./pages/Auth/VerifyEmail.svelte": () => import("./assets/VerifyEmail-e2bb6474.js"), "./pages/Dashboard.svelte": () => import("./assets/Dashboard-6e16926d.js"), "./pages/Profile.svelte": () => import("./assets/Profile-379d812a.js"), "./pages/Users.svelte": () => import("./assets/Users-defd4cd9.js"), "./pages/Welcome.svelte": () => import("./assets/Welcome-2cdb01be.js") })
-  );
-  await page2.then((module) => {
-    component = pagesWithoutDefaultLayout.includes(name) ? module : Object.assign({ layout: defaultLayout }, module);
-  });
-  return component;
-}
-function getPages(pages) {
-  return Object.keys(pages).map(
-    (page2) => page2.replace("./pages/", "").replace(".svelte", "")
-  );
-}
-window.axios = B;
-window.axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
-export {
-  ApplicationLogo as A,
-  Button as B,
-  Dialog as D,
-  Oe as O,
-  compute_rest_props as a,
-  add_attribute as b,
-  create_ssr_component as c,
-  spread as d,
-  escape$1 as e,
-  escape_object as f,
-  getContext as g,
-  escape_attribute_value as h,
-  DialogOverlay as i,
-  createEventDispatcher as j,
-  isEqual as k,
-  setContext as l,
-  each as m,
-  derived as n,
-  is_void as o,
-  route as r,
-  subscribe as s,
-  validate_component as v,
-  writable as w
+const __vite_glob_0_8 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Users
+}, Symbol.toStringTag, { value: "Module" }));
+const Welcome_svelte_svelte_type_style_lang = "";
+const css = {
+  code: "p.svelte-7xdp3d{@apply text-center border border-gray-5 rounded-lg p-4 border-dashed ;}",
+  map: null
 };
+const Welcome = create_ssr_component(($$result, $$props, $$bindings, slots) => {
+  let { app } = $$props;
+  let { auth } = $$props;
+  if ($$props.app === void 0 && $$bindings.app && app !== void 0)
+    $$bindings.app(app);
+  if ($$props.auth === void 0 && $$bindings.auth && auth !== void 0)
+    $$bindings.auth(auth);
+  $$result.css.add(css);
+  return `<div class="min-h-screen min-w-screen grid place-items-center "><div><div class="space-x-3 flex justify-end mb-4">${!auth ? `${validate_component(Link_1, "Link").$$render($$result, { href: route$1("login") }, {}, {
+    default: () => {
+      return `Login`;
+    }
+  })}
+        ${validate_component(Link_1, "Link").$$render($$result, { href: route$1("register") }, {}, {
+    default: () => {
+      return `Register`;
+    }
+  })}` : `${validate_component(Link_1, "Link").$$render($$result, { href: route$1("dashboard") }, {}, {
+    default: () => {
+      return `Dashboard`;
+    }
+  })}`}</div>
+
+    <div class="bg-white dark:bg-slate-8 rounded-lg p10 space-y-3"><div class="text-5xl text-center">responsive🔥sk</div>
+      <h1 class="text-2xl font-bold">Laravel ${escape$1(app.laravel)} + Vite + Svelte + Inertia + Unocss</h1>
+      <div class="grid grid-cols-2 gap-3 pt-8 dark:text-slate-2"><p class="svelte-7xdp3d">Laravel: ${escape$1(app.laravel)}</p>
+        <p class="svelte-7xdp3d">PHP: ${escape$1(app.php)}</p>
+        <p class="svelte-7xdp3d">Name: ${escape$1(app.name)}</p>
+        <p class="svelte-7xdp3d">Env: ${escape$1(app.env)}</p>
+        <p class="svelte-7xdp3d">Debug: ${escape$1(app.debug)}</p>
+        <p class="svelte-7xdp3d">URL: ${escape$1(app.url)}</p></div></div></div>
+
+</div>`;
+});
+const __vite_glob_0_9 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  default: Welcome
+}, Symbol.toStringTag, { value: "Module" }));
+var g = (t) => new Promise((o, n) => {
+  let r = "";
+  t.on("data", (e) => r += e), t.on("end", () => o(r)), t.on("error", (e) => n(e));
+}), d = (t, o) => {
+  let n = o || 13714, r = { "/health": async () => ({ status: "OK", timestamp: Date.now() }), "/shutdown": () => s.exit(), "/render": async (e) => t(JSON.parse(await g(e))), "/404": async () => ({ status: "NOT_FOUND", timestamp: Date.now() }) };
+  createServer(async (e, a) => {
+    let i = r[e.url] || r["/404"];
+    try {
+      a.writeHead(200, { "Content-Type": "application/json", Server: "Inertia.js SSR" }), a.write(JSON.stringify(await i(e)));
+    } catch (p) {
+      console.error(p);
+    }
+    a.end();
+  }).listen(n, () => console.log("Inertia SSR server started.")), console.log(`Starting SSR server on port ${n}...`);
+};
+d(
+  (page) => createInertiaApp({
+    page,
+    resolve: (name) => {
+      const pages = /* @__PURE__ */ Object.assign({ "./pages/Auth/ConfirmPassword.svelte": __vite_glob_0_0, "./pages/Auth/ForgotPassword.svelte": __vite_glob_0_1, "./pages/Auth/Login.svelte": __vite_glob_0_2, "./pages/Auth/Register.svelte": __vite_glob_0_3, "./pages/Auth/ResetPassword.svelte": __vite_glob_0_4, "./pages/Auth/VerifyEmail.svelte": __vite_glob_0_5, "./pages/Dashboard.svelte": __vite_glob_0_6, "./pages/Profile.svelte": __vite_glob_0_7, "./pages/Users.svelte": __vite_glob_0_8, "./pages/Welcome.svelte": __vite_glob_0_9 });
+      return pages[`./pages/${name}.svelte`];
+    }
+  })
+);

@@ -16,6 +16,7 @@ declare global {
   const circIn: typeof import('svelte/easing')['circIn']
   const circInOut: typeof import('svelte/easing')['circInOut']
   const circOut: typeof import('svelte/easing')['circOut']
+  const classes: typeof import('../actions/classes')['classes']
   const createEventDispatcher: typeof import('svelte')['createEventDispatcher']
   const crossfade: typeof import('svelte/transition')['crossfade']
   const cubicIn: typeof import('svelte/easing')['cubicIn']
