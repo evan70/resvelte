@@ -7,10 +7,12 @@ import {
     presetWebFonts,
     transformerDirectives,
     transformerVariantGroup,
-} from "unocss"
+} from 'unocss'
 
 // @ts-ignore
-import { extractorSvelte } from "@unocss/core"
+import { extractorSvelte } from '@unocss/core'
+
+import presetMini from '@unocss/preset-mini'
 
 export default defineConfig({
     extractors: [extractorSvelte],
@@ -38,6 +40,9 @@ export default defineConfig({
         ],
     ],
     presets: [
+        presetMini({
+            // dark: 'media',
+        }),
         presetUno(),
         presetAttributify(),
         presetIcons({
