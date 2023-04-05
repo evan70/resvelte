@@ -18,6 +18,7 @@
       reset()
     }
   })
+  const route = window.route
 </script>
 
 

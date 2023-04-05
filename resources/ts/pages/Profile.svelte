@@ -1,4 +1,5 @@
 <script lang='ts'>
+  import { Link } from '@inertiajs/svelte'
   import type { DTProps } from '@/types/DataTableTypes'
   import InertiaDatatable from '@/components/shared/Datatable/InertiaDatatable.svelte'
 
@@ -15,6 +16,7 @@
     }
 
   ]
+  const route = window.route
 </script>
 
 <button class='mb-5' use:inertia={{

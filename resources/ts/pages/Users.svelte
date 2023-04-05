@@ -21,7 +21,8 @@
     },
     { label: 'Actions', value: 'actions', align: 'center' }
   ]
-
+  
+  const route = window.route
 </script>
 <VDialog let:close let:open>
   <Button class='mb-3' color='btn-light-blue' on:click={open} slot='button'>Add User +</Button>

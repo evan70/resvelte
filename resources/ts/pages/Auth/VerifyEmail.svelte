@@ -7,7 +7,7 @@
   export let status
 
   $: verificationLinkSent = status === 'verification-link-sent'
-
+  const route = window.route
 </script>
 
 <svelte:head>
