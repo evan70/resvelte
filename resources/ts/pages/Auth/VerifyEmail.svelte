@@ -1,4 +1,4 @@
-<script>
+<script lang='ts'>
   import { Link } from '@inertiajs/svelte'
   import Guest from '@/layouts/Guest.svelte'
   import Button from '@/components/shared/Button.svelte'

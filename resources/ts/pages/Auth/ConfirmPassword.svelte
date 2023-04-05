@@ -1,4 +1,4 @@
-<script>
+<script lang='ts'>
   import Guest from '@/layouts/Guest.svelte'
   import Form from '@/components/shared/Form/Form.svelte'
   import Field from '@/components/shared/Form/Field.svelte'

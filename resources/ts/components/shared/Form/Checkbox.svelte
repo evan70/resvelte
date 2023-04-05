@@ -5,8 +5,8 @@
 
 
   let randomId = Math.random().toString(36).substring(2, 9)
-  export let name: string
-  export let label: string
+  // export let name: string
+  // export let label: string
 
   let { computedName, computedLabel, id } = useInput($$props)
   const form = getContext('form')

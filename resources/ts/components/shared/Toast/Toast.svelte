@@ -1,8 +1,11 @@
 <script lang='ts'>
   import { toast } from './toast'
   import ToastItem from './ToastItem.svelte'
+  import { fly, fade } from 'svelte/transition'
+  import { flip } from 'svelte/animate'
+  
+  // export let options = {}
 
-  export let options = {}
 </script>
 
 <ul class='fixed top-5 right-5 z-50'>

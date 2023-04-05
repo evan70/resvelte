@@ -1,7 +1,10 @@
 <script lang='ts'>
 
+  import { inertia } from '@inertiajs/svelte'
   import Drawer from '@/components/shared/Drawer.svelte'
   import Button from '@/components/shared/Button.svelte'
+  import { scale } from 'svelte/transition'
+  import { cubicOut } from 'svelte/easing'
   import ApplicationLogo from '@/components/layout/ApplicationLogo.svelte'
 
   export let activeRoute: string

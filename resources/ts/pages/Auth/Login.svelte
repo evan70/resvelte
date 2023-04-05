@@ -1,4 +1,4 @@
-<script>
+<script lang='ts'>
 
   import Checkbox from '@/components/shared/Form/Checkbox.svelte'
 
@@ -10,7 +10,8 @@
 
   export let canResetPassword
   export let status
-
+  
+  const route = window.route
 
 </script>
 <svelte:head>

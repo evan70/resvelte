@@ -9,9 +9,9 @@ export type Toast = {
 }
 const defaults = {
     type: "info",
-    duration: 3000,
+    duration: 4000,
     position: "top-right",
-    closable: true,
+    closable: false,
 }
 let id = 1
 const createToast = (global = {}) => {

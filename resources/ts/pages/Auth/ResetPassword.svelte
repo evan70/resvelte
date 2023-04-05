@@ -1,4 +1,4 @@
-<script>
+<script lang='ts'>
   import Form from '@/components/shared/Form/Form.svelte'
   import Field from '@/components/shared/Form/Field.svelte'
   import Button from '@/components/shared/Button.svelte'

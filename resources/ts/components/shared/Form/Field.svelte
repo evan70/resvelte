@@ -3,8 +3,8 @@
   import { slide } from 'svelte/transition'
   import { useInput } from '@/helpers/InputHelpers'
 
-  export let name: string | null
-  export let label: string | null = null
+  // export let name: string | null
+  // export let label: string | null = null
   const form = getContext('form')
 
   let { computedName, computedLabel, id } = useInput($$props)

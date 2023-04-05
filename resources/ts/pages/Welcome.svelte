@@ -30,8 +30,8 @@
 
     <div class='bg-white dark:bg-slate-8 rounded-lg p10 space-y-3'>
 
-      <div class='text-5xl text-center'>🔥</div>
-      <h1 class='text-2xl font-bold'>Laravel 9 + Vite + Svelte + Inertia + Unocss</h1>
+      <div class='text-5xl text-center'>responsive🔥sk</div>
+      <h1 class='text-2xl font-bold'>Laravel {app.laravel} + Vite + Svelte + Inertia + Unocss</h1>
       <div class='grid grid-cols-2 gap-3 pt-8 dark:text-slate-2'>
         <p>Laravel: {app.laravel}</p>
         <p>PHP: {app.php}</p>

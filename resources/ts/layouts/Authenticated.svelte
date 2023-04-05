@@ -7,6 +7,9 @@
   import NavLink from '@/components/layout/NavLink.svelte'
   import Toast from '@/components/shared/Toast/Toast.svelte'
   import SideMenu from '@/components/layout/SideMenu.svelte'
+  import { fly } from 'svelte/transition'
+  
+  // let visible = true;
 
   let activeRoute = $page.url
   let navLinks = [
