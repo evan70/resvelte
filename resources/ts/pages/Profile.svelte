@@ -1,5 +1,5 @@
 <script lang='ts'>
-  import { Link } from '@inertiajs/svelte'
+  import { inertia } from '@inertiajs/svelte'
   import type { DTProps } from '@/types/DataTableTypes'
   import InertiaDatatable from '@/components/shared/Datatable/InertiaDatatable.svelte'
 

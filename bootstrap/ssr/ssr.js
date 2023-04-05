@@ -4092,7 +4092,7 @@ const Ziggy = { "url": "http://localhost:8000", "port": 8e3, "defaults": {}, "ro
 if (typeof window !== "undefined" && typeof window.Ziggy !== "undefined") {
   Object.assign(Ziggy.routes, window.Ziggy.routes);
 }
-const route$1 = (name, params, absolute) => {
+const route = (name, params, absolute) => {
   return ZiggyRoute(name, params, absolute, Ziggy);
 };
 const ForgotPassword = create_ssr_component(($$result, $$props, $$bindings, slots) => {
@@ -4112,7 +4112,7 @@ ${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
         $$result,
         {
           initialValues: { email: null },
-          url: route$1("password.email")
+          url: route("password.email")
         },
         {},
         {
@@ -4340,6 +4340,7 @@ const __vite_glob_0_4 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.def
 const VerifyEmail = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   let verificationLinkSent;
   let { status } = $$props;
+  const route2 = window.route;
   if ($$props.status === void 0 && $$bindings.status && status !== void 0)
     $$bindings.status(status);
   verificationLinkSent = status === "verification-link-sent";
@@ -4360,7 +4361,7 @@ ${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
         {
           as: true,
           class: "flex justify-between items-center mt-10",
-          url: route$1("verification.send")
+          url: route2("verification.send")
         },
         {},
         {
@@ -4370,7 +4371,7 @@ ${validate_component(Guest, "Guest").$$render($$result, {}, {}, {
               {
                 as: "button",
                 class: "underline text-sm text-gray-600 hover:text-gray-900",
-                href: route$1("logout"),
+                href: route2("logout"),
                 method: "post"
               },
               {},
@@ -6057,6 +6058,7 @@ const UserForm = create_ssr_component(($$result, $$props, $$bindings, slots) => 
       reset();
     }
   });
+  const route2 = window.route;
   if ($$props.initialValues === void 0 && $$bindings.initialValues && initialValues !== void 0)
     $$bindings.initialValues(initialValues);
   return `${validate_component(Form, "Form").$$render(
@@ -6064,7 +6066,7 @@ const UserForm = create_ssr_component(($$result, $$props, $$bindings, slots) => 
     {
       config,
       initialValues,
-      url: route$1("users.store")
+      url: route2("users.store")
     },
     {},
     {
@@ -6102,6 +6104,7 @@ const UpdateUserForm = create_ssr_component(($$result, $$props, $$bindings, slot
       reset();
     }
   });
+  const route2 = window.route;
   if ($$props.initialValues === void 0 && $$bindings.initialValues && initialValues !== void 0)
     $$bindings.initialValues(initialValues);
   return `<div><h1 class="font-bold mb-3 ">Update an account</h1>
@@ -6111,7 +6114,7 @@ const UpdateUserForm = create_ssr_component(($$result, $$props, $$bindings, slot
       config,
       initialValues,
       method: "patch",
-      url: route$1("users.update", { user: initialValues.id })
+      url: route2("users.update", { user: initialValues.id })
     },
     {},
     {
@@ -6156,6 +6159,7 @@ const Users = create_ssr_component(($$result, $$props, $$bindings, slots) => {
       align: "center"
     }
   ];
+  const route2 = window.route;
   if ($$props.users === void 0 && $$bindings.users && users !== void 0)
     $$bindings.users(users);
   return `${validate_component(Dialog_1, "VDialog").$$render($$result, {}, {}, {
@@ -6211,7 +6215,7 @@ ${validate_component(InertiaDatatable, "InertiaDatatable").$$render(
           $$result,
           {
             method: "delete",
-            url: route("users.destroy", { user: row2.id })
+            url: route2("users.destroy", { user: row2.id })
           },
           {},
           {
@@ -6250,16 +6254,16 @@ const Welcome = create_ssr_component(($$result, $$props, $$bindings, slots) => {
   if ($$props.auth === void 0 && $$bindings.auth && auth !== void 0)
     $$bindings.auth(auth);
   $$result.css.add(css);
-  return `<div class="min-h-screen min-w-screen grid place-items-center "><div><div class="space-x-3 flex justify-end mb-4">${!auth ? `${validate_component(Link_1, "Link").$$render($$result, { href: route$1("login") }, {}, {
+  return `<div class="min-h-screen min-w-screen grid place-items-center "><div><div class="space-x-3 flex justify-end mb-4">${!auth ? `${validate_component(Link_1, "Link").$$render($$result, { href: route("login") }, {}, {
     default: () => {
       return `Login`;
     }
   })}
-        ${validate_component(Link_1, "Link").$$render($$result, { href: route$1("register") }, {}, {
+        ${validate_component(Link_1, "Link").$$render($$result, { href: route("register") }, {}, {
     default: () => {
       return `Register`;
     }
-  })}` : `${validate_component(Link_1, "Link").$$render($$result, { href: route$1("dashboard") }, {}, {
+  })}` : `${validate_component(Link_1, "Link").$$render($$result, { href: route("dashboard") }, {}, {
     default: () => {
       return `Dashboard`;
     }

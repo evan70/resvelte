@@ -1,5 +1,7 @@
 <script lang='ts'>
   import { Dialog, DialogOverlay } from '@rgossiaux/svelte-headlessui'
+  import { fade, scale } from 'svelte/transition'
+  import { cubicOut } from 'svelte/easing'
 
   let isOpen = false
   export const close = () => isOpen = false
